@@ -9,5 +9,4 @@ public class OctagonCell extends Cell {
         super(coordinates, colour, cellType);
     }
 
-
 }
