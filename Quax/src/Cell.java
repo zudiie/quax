@@ -41,4 +41,10 @@ public class Cell {
         return label;
     }
 
+    public String getDisplaySymbol(String x) {
+            if (colour == PlayerColour.BLACK) return "B";
+            if (colour == PlayerColour.WHITE) return "W";
+            return x;
+        }
+
 }
