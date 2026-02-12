@@ -1,6 +1,6 @@
 import java.util.HashMap;
 import java.util.Map;
-
+import java.util.Scanner;
 
 
 public class QuaxBoard {
@@ -66,7 +66,7 @@ public class QuaxBoard {
                 OctagonalCell cell = octagonCells.get(key);
 
                 // print cell symbol
-                System.out.print(cell.getDisplaySymbol("X") + "  ");
+                System.out.print(cell.getDisplaySymbol("O") + "  ");
 
                 if (j !=  BOARD_SIZE - 1) System.out.print("-  ");
             }
@@ -84,7 +84,7 @@ public class QuaxBoard {
                     RhombicCell cell = rhombusCells.get(key);
 
                     // safety check in case map logic varies, default to O
-                    String symbol = (cell != null) ? cell.getDisplaySymbol("o") : "o";
+                    String symbol = (cell != null) ? cell.getDisplaySymbol("x") : "x";
 
                     System.out.print(symbol + "  ");
 
@@ -95,11 +95,105 @@ public class QuaxBoard {
         }
     }
 
+
+    private static void displayStartScreen() {
+        while (true) {
+            System.out.println("\n\n****************************************");
+            System.out.println("*                                      *");
+            System.out.println("*         Welcome to Quax Board!       *");
+            System.out.println("*                                      *");
+            System.out.println("*       Press Enter Key to Start!      *");
+            System.out.println("*                                      *");
+            System.out.println("*      To exit the game, type quit     *");
+            System.out.println("*                                      *");
+            System.out.println("****************************************\n\n");
+
+            if (!pressEnterToContinue()) {
+                break;
+            }
+
+            System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+            System.out.println("****************************************");
+            System.out.println("*                                      *");
+            System.out.println("*           Choose Game Mode:          *");
+            System.out.println("*                                      *");
+            System.out.println("*      Human vs Human  (type human)    *");
+            System.out.println("*        Human vs Bot  (type bot)      *");
+            System.out.println("*                                      *");
+            System.out.println("****************************************\n\n");
+
+            GameMode gamemode = getGameMode();
+
+            if (gamemode == GameMode.HUMAN_VS_HUMAN) {
+                System.out.print("Launching Human vs Human mode.");
+
+            } else {
+                System.out.print("Launching Human vs Bot mode.");
+            }
+            delayOutput();
+            System.out.print(".");
+            delayOutput();
+            System.out.print(".");
+            delayOutput();
+            System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+
+            printHeader(gamemode);
+            break;
+        }
+    }
+
+    private static void delayOutput() {
+        try {
+            Thread.sleep(1000); // 1000 ms delay
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private static void printHeader(GameMode gamemode) {
+        if  (gamemode == GameMode.HUMAN_VS_HUMAN) {
+            System.out.println("\n\n-----------------      Quax (Human vs Human)      -----------------\n");
+        } else  {
+            System.out.println("\n\n-----------------       Quax (Human vs Bot)       -----------------\n");
+        }
+    }
+
+    private static GameMode getGameMode() {
+        Scanner in = new Scanner(System.in);
+        String input = in.nextLine();
+        while(true) {
+            if (input.equals("human")) {
+                return GameMode.HUMAN_VS_HUMAN;
+            } else if (input.equals("bot")) {
+                return GameMode.HUMAN_VS_BOT ;
+            } else {
+                System.out.println("Invalid Input");
+            }
+        }
+    }
+
+    private static boolean pressEnterToContinue() {
+        Scanner in = new Scanner(System.in);
+        String input;
+        while(true) {
+            input =  in.nextLine();
+            if (input.equals("quit")) {
+                return false;
+            } else if (input.equals("")) {
+                return true;
+            } else {
+                System.out.println("Invalid Input");
+            }
+        }
+    }
+
     public static void main(String[] args) {
 
         QuaxBoard quaxBoard = new QuaxBoard();
 
+        displayStartScreen();
         displayBoard();
 
     }
+
 }
