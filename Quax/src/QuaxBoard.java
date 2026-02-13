@@ -196,4 +196,29 @@ public class QuaxBoard {
 
     }
 
+    /**
+     *   I added a public methiod just so that controller can place stones
+     *   without directly accessing the internal OctagonaCells map
+     */
+    public boolean placeStone(String label, PlayerColour colour) {
+        if (label == null) return false;
+
+        String key = label.trim().toUpperCase();
+        OctagonalCell cell = octagonCells.get(key);
+
+        if (cell == null) return false;        // invalid label
+        if (cell.isOccupied()) return false;   // already taken
+
+        cell.setColour(colour);
+        cell.setOccupied(true);
+        return true;
+    }
+
+    // Helper method so Controller can validate if a label exists on the board.
+    public boolean isValidOctCellLabel(String label) {
+        if (label == null) return false;
+        String key = label.trim().toUpperCase();
+        return octagonCells.containsKey(key);
+    }
+
 }
