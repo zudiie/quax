@@ -7,4 +7,9 @@ public class RhombicCell extends Cell {
         super(coordinates, colour, cellType);
     }
 
+    @Override
+    public String getDisplaySymbol() {
+        return "x";
+    }
+
 }

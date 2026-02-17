@@ -1,4 +1,4 @@
-public class Cell {
+abstract class Cell {
 
     protected Point coordinates;
     protected PlayerColour colour;
@@ -6,7 +6,7 @@ public class Cell {
     protected CellType cellType;
     private String label;
 
-    Cell(Point coordinates, PlayerColour colour, CellType cellType) {
+    public Cell(Point coordinates, PlayerColour colour, CellType cellType) {
         this.coordinates = coordinates;
         this.colour = colour;
         this.cellType = cellType;
@@ -37,14 +37,8 @@ public class Cell {
         this.isOccupied = isOccupied;
     }
 
-    public String getLabel(){
-        return label;
-    }
+    public String getLabel(){ return label; }
 
-    public String getDisplaySymbol(String x) {
-            if (colour == PlayerColour.BLACK) return "B";
-            if (colour == PlayerColour.WHITE) return "W";
-            return x;
-        }
+    public abstract String getDisplaySymbol();
 
 }

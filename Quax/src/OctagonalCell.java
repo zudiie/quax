@@ -9,4 +9,11 @@ public class OctagonalCell extends Cell {
         super(coordinates, colour, cellType);
     }
 
+    @Override
+    public String getDisplaySymbol() {
+        if (!isOccupied) return "O";
+        return (colour == PlayerColour.BLACK) ? "B" : "W";
+    }
+
+
 }

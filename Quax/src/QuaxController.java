@@ -1,46 +1,65 @@
+import java.util.Scanner;
+
 public class QuaxController {
 
     private final QuaxBoard board;
     private final GameDisplay display;
+    private final Scanner scanner;
 
     private PlayerColour currentPlayer;
     private boolean running;
+    private GameMode gamemode;
 
     public QuaxController() {
+        this.scanner = new Scanner(System.in);
         this.board = new QuaxBoard();
         this.display = new GameDisplay();
         this.currentPlayer = PlayerColour.BLACK;
         this.running = true;
     }
 
-    public boolean isRunning() {
-        return running;
+    public void launch() {
+        // show start screen
+        display.displayStartScreen();
+        if (!waitForEnterOrQuit()) return;
+
+        // select mode
+        display.displayModeSelection();
+        this.gamemode = getGameModeInput();
+
+        display.showLoading("Launching " + gamemode);
+
+        //start game loop
+        display.printHeader(gamemode);
+        runGameLoop();
     }
 
-    public PlayerColour getCurrentPlayer() {
-        return currentPlayer;
-    }
 
-    public void render() {
-        display.displayBoard(board, currentPlayer);
-    }
+    private void runGameLoop() {
+        while (running) {
+            display.renderBoard(board, currentPlayer);
 
-    // Returns true only if the move was placed successfully.
-    public boolean attemptMove(String label) {
-        if (!board.isValidOctCellLabel(label)) {
-            display.showMessage("Invalid input. Use labels like A1, B7, K11.");
-            return false;
+            System.out.print("Move for " + currentPlayer + ": ");
+            String input = scanner.nextLine().trim();
+
+            if (input.equalsIgnoreCase("quit")) {
+                quitGame();
+                break;
+            }
+
+            // attempt move
+            if (board.isValidLabel(input)) {
+                boolean success = board.placeStone(input, currentPlayer);
+                if (success) {
+                    switchTurn();
+                } else {
+                    display.showMessage("Cell is already occupied.");
+                }
+            } else {
+                display.showMessage("Invalid coordinate. Try format 'A1', 'K11'.");
+            }
         }
-
-        boolean placed = board.placeStone(label, currentPlayer);
-        if (!placed) {
-            display.showMessage("Invalid move. That cell is already occupied.");
-            return false;
-        }
-
-        // Only switch turn if the move succeeded
-        switchTurn();
-        return true;
+        scanner.close();
     }
 
     private void switchTurn() {
@@ -48,8 +67,32 @@ public class QuaxController {
         else currentPlayer = PlayerColour.BLACK;
     }
 
+    private boolean waitForEnterOrQuit() {
+        while (true) {
+            String input = scanner.nextLine().trim();
+            if (input.equalsIgnoreCase("quit")) {
+                quitGame();
+                return false;
+            }
+            if (input.isEmpty()) return true;
+
+        }
+    }
+
+    private GameMode getGameModeInput() {
+        while (true) {
+            System.out.print(">> ");
+            String input = scanner.nextLine().trim().toLowerCase();
+            if (input.equals("human")) return GameMode.HUMAN_VS_HUMAN;
+            if (input.equals("bot")) return GameMode.HUMAN_VS_BOT;
+            if (input.equals("quit")) { quitGame(); System.exit(0); }
+            display.showMessage("Invalid input. Type 'human' or 'bot'.\n");
+        }
+    }
+
     public void quitGame() {
         running = false;
         display.showMessage("Exiting game...");
     }
+
 }
