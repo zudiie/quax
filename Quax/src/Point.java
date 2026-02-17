@@ -1,19 +1,23 @@
+/**
+ * Represents a logical coordinate on the game board.
+ * Used to map internal grid positions to game rules
+ */
+
 public class Point {
 
-    private int x;
-    private int y;
+    private final int col;
+    private final int row;
 
-    public Point(int x, int y) {
-        this.x = x;
-        this.y = y;
+    public Point(int col, int row) {
+        this.col = col;
+        this.row = row;
     }
 
-    public int getX() {
-        return x;
+    public int getCol() {
+        return col;
     }
-
-    public int getY() {
-        return y;
+    public int getRow() {
+        return row;
     }
 
 }
