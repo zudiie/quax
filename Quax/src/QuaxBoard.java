@@ -1,21 +1,29 @@
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
-
+/*
+    This is a model class representing the Quax game board. Responsible for maintaining
+    the state of the 11x11 grid, including Octagonal and Rhombic cells.
+ */
 public class QuaxBoard {
 
-    private static Map<String, OctagonalCell> octagonCells = new HashMap<>();
-    private  static Map<String, RhombicCell> rhombusCells = new HashMap<>();
+    // constant for board dimensions
     private final static int BOARD_SIZE = 11;
-    GameDisplay display;
+
+    // data structures to hold the board state
+    // the key is the string label (e.g. "A1") and the value is the Cell object
+    private static Map<String, OctagonalCell> octagonCells;
+    private static Map<String, RhombicCell> rhombusCells;
 
     public QuaxBoard() {
+        this.octagonCells = new HashMap<>();
+        this.rhombusCells = new HashMap<>();
         initializeBoard();
-        display = new GameDisplay();
     }
 
+    // initialises the 11x11 board structure
+    // creates octagonal cells for stones and rhombic cells for connections
     private void initializeBoard() {
         // create octagon cells (11x11 grid)
         octagonCells.clear();
@@ -23,12 +31,13 @@ public class QuaxBoard {
 
         for (int row = 1; row <= BOARD_SIZE; row++) {
             for (int col = 0; col < BOARD_SIZE; col++) {
-                // generate labels A1, B1 etc.
+                // 1. create and store octagonal cell
                 Point p = new Point(col, row);
                 String label = generateLabel(col, row);
                 octagonCells.put(label, new OctagonalCell(p, PlayerColour.EMPTY, CellType.OCTAGON));
 
-                if (col < BOARD_SIZE - 1 && row > 1) { // Logic adjusted to match visual gap
+                // 2. create and store rhombic cell (the connections between diagonals
+                if (col < BOARD_SIZE - 1 && row > 1) { // logic adjusted to match visual gap
                     // we label the rhombus based on the octagon to its top-left or similar logic
                     // here R-A1 is the rhombus connected to A1
                     String rKey = "R-" + label;
@@ -38,13 +47,41 @@ public class QuaxBoard {
         }
     }
 
+    //generates the coordinate label (e.g. 0,1 would generate - "A1")
     private static String generateLabel(int col, int row) {
         char colChar = (char) ('A' + col);
         return "" + colChar + row;
     }
 
+    public boolean isValidLabel(String label) {
+        return octagonCells.containsKey(label.toUpperCase());
+    }
 
+    public boolean placeStone(String label, PlayerColour colour) {
+        if (!isValidLabel(label)){
+            return false;
+        }
 
+        OctagonalCell cell = octagonCells.get(label.trim().toUpperCase());
+        if (cell.isOccupied()) {
+            return false;
+        }
+
+        cell.setColour(colour);
+        return true;
+    }
+
+    public OctagonalCell getOctagonalCell(String label) {
+        return octagonCells.get(label);
+    }
+
+    public RhombicCell getRhombicCell(String label) {
+        return rhombusCells.get(label);
+    }
+
+    public int getBoardSize(){
+        return BOARD_SIZE;
+    }
 
     public static void displayBoard(){
 
@@ -82,8 +119,7 @@ public class QuaxBoard {
                 for (int k = 0; k < BOARD_SIZE - 1; k++) {
 
                     // retrieve rhombus from Map
-                    // we access the rhombus associated with the row we are curren
-                    // tly processing
+                    // we access the rhombus associated with the row we are currently processing
                     String key = "R-" + generateLabel(k, i);
                     RhombicCell cell = rhombusCells.get(key);
 
@@ -100,81 +136,81 @@ public class QuaxBoard {
     }
 
 
-    private static void displayStartScreen() {
-        while (true) {
-            System.out.println("\n\n****************************************");
-            System.out.println("*                                      *");
-            System.out.println("*         Welcome to Quax Board!       *");
-            System.out.println("*                                      *");
-            System.out.println("*       Press Enter Key to Start!      *");
-            System.out.println("*                                      *");
-            System.out.println("*      To exit the game, type quit     *");
-            System.out.println("*                                      *");
-            System.out.println("****************************************\n\n");
+//    private static void displayStartScreen() {
+//        while (true) {
+//            System.out.println("\n\n****************************************");
+//            System.out.println("*                                      *");
+//            System.out.println("*         Welcome to Quax Board!       *");
+//            System.out.println("*                                      *");
+//            System.out.println("*       Press Enter Key to Start!      *");
+//            System.out.println("*                                      *");
+//            System.out.println("*      To exit the game, type quit     *");
+//            System.out.println("*                                      *");
+//            System.out.println("****************************************\n\n");
+//
+//            if (!pressEnterToContinue()) {
+//                break;
+//            }
+//
+//            System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+//            System.out.println("****************************************");
+//            System.out.println("*                                      *");
+//            System.out.println("*           Choose Game Mode:          *");
+//            System.out.println("*                                      *");
+//            System.out.println("*      Human vs Human  (type human)    *");
+//            System.out.println("*        Human vs Bot  (type bot)      *");
+//            System.out.println("*                                      *");
+//            System.out.println("****************************************\n\n");
+//
+//            GameMode gamemode = getGameMode();
+//
+//            if (gamemode == GameMode.HUMAN_VS_HUMAN) {
+//                System.out.print("Launching Human vs Human mode.");
+//
+//            } else {
+//                System.out.print("Launching Human vs Bot mode.");
+//            }
+//            delayOutput();
+//            System.out.print(".");
+//            delayOutput();
+//            System.out.print(".");
+//            delayOutput();
+//            System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+//
+//            printHeader(gamemode);
+//            break;
+//        }
+//    }
 
-            if (!pressEnterToContinue()) {
-                break;
-            }
+//    private static void delayOutput() {
+//        try {
+//            Thread.sleep(1000); // 1000 ms delay
+//        } catch (InterruptedException e) {
+//            Thread.currentThread().interrupt();
+//        }
+//    }
+//
+//    private static void printHeader(GameMode gamemode) {
+//        if  (gamemode == GameMode.HUMAN_VS_HUMAN) {
+//            System.out.println("\n\n-----------------      Quax (Human vs Human)      -----------------\n");
+//        } else  {
+//            System.out.println("\n\n-----------------       Quax (Human vs Bot)       -----------------\n");
+//        }
+//    }
 
-            System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-            System.out.println("****************************************");
-            System.out.println("*                                      *");
-            System.out.println("*           Choose Game Mode:          *");
-            System.out.println("*                                      *");
-            System.out.println("*      Human vs Human  (type human)    *");
-            System.out.println("*        Human vs Bot  (type bot)      *");
-            System.out.println("*                                      *");
-            System.out.println("****************************************\n\n");
-
-            GameMode gamemode = getGameMode();
-
-            if (gamemode == GameMode.HUMAN_VS_HUMAN) {
-                System.out.print("Launching Human vs Human mode.");
-
-            } else {
-                System.out.print("Launching Human vs Bot mode.");
-            }
-            delayOutput();
-            System.out.print(".");
-            delayOutput();
-            System.out.print(".");
-            delayOutput();
-            System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-
-            printHeader(gamemode);
-            break;
-        }
-    }
-
-    private static void delayOutput() {
-        try {
-            Thread.sleep(1000); // 1000 ms delay
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    private static void printHeader(GameMode gamemode) {
-        if  (gamemode == GameMode.HUMAN_VS_HUMAN) {
-            System.out.println("\n\n-----------------      Quax (Human vs Human)      -----------------\n");
-        } else  {
-            System.out.println("\n\n-----------------       Quax (Human vs Bot)       -----------------\n");
-        }
-    }
-
-    private static GameMode getGameMode() {
-        Scanner in = new Scanner(System.in);
-        String input = in.nextLine();
-        while(true) {
-            if (input.equals("human")) {
-                return GameMode.HUMAN_VS_HUMAN;
-            } else if (input.equals("bot")) {
-                return GameMode.HUMAN_VS_BOT ;
-            } else {
-                System.out.println("Invalid Input");
-            }
-        }
-    }
+//    private static GameMode getGameMode() {
+//        Scanner in = new Scanner(System.in);
+//        String input = in.nextLine();
+//        while(true) {
+//            if (input.equals("human")) {
+//                return GameMode.HUMAN_VS_HUMAN;
+//            } else if (input.equals("bot")) {
+//                return GameMode.HUMAN_VS_BOT ;
+//            } else {
+//                System.out.println("Invalid Input");
+//            }
+//        }
+//    }
 
     private static boolean pressEnterToContinue() {
         Scanner in = new Scanner(System.in);
@@ -191,62 +227,38 @@ public class QuaxBoard {
         }
     }
 
-    public static void main(String[] args) {
-
-        QuaxBoard quaxBoard = new QuaxBoard();
-
-        displayStartScreen();
-        displayBoard();
-
-    }
+//    public static void main(String[] args) {
+//
+//        QuaxBoard quaxBoard = new QuaxBoard();
+//
+//        displayStartScreen();
+//        displayBoard();
+//
+//    }
 
     /**
      *   I added a public methiod just so that controller can place stones
-     *   without directly accessing the internal OctagonCells map
+     *   without directly accessing the internal OctagonaCells map
      */
-    public boolean placeStone(String label, PlayerColour colour) {
-        if (label == null) return false;
-
-        String key = label.trim().toUpperCase();
-        OctagonalCell cell = octagonCells.get(key);
-
-        if (cell == null) return false;        // invalid label
-        if (cell.isOccupied()) return false;   // already taken
-
-        cell.setColour(colour);
-        cell.setOccupied(true);
-        return true;
-    }
+//    public boolean placeStone(String label, PlayerColour colour) {
+//        if (label == null) return false;
+//
+//        String key = label.trim().toUpperCase();
+//        OctagonalCell cell = octagonCells.get(key);
+//
+//        if (cell == null) return false;        // invalid label
+//        if (cell.isOccupied()) return false;   // already taken
+//
+//        cell.setColour(colour);
+//        cell.setOccupied(true);
+//        return true;
+//    }
 
     // Helper method so Controller can validate if a label exists on the board.
     public boolean isValidOctCellLabel(String label) {
         if (label == null) return false;
         String key = label.trim().toUpperCase();
         return octagonCells.containsKey(key);
-    }
-
-    public Cell getOctagonalCell(String octagon) {
-        return findCell("O",  octagon);
-    }
-
-    public Cell getRhombicCell(String rhombus) {
-        return findCell("R",  rhombus);
-    }
-
-    public Cell findCell(String cellType, String cellLabel){
-        if(cellType == null || cellLabel == null) return null;
-        String key = cellType.toUpperCase();
-        Cell cell = null;
-        if (key.equals("O")) {
-            cell = octagonCells.get(cellLabel);
-        }
-        else if(key.equals("R")) {
-            cell = rhombusCells.get(cellLabel);
-        }
-        else{
-            System.out.println("Invalid Cell Type");
-        }
-        return cell;
     }
 
 }
