@@ -1,3 +1,4 @@
+
 public class OctagonalCell extends Cell {
 
     private final int radius = 2;
@@ -9,11 +10,6 @@ public class OctagonalCell extends Cell {
         super(coordinates, colour, cellType);
     }
 
-    @Override
-    public String getDisplaySymbol() {
-        if (!isOccupied) return "O";
-        return (colour == PlayerColour.BLACK) ? "B" : "W";
-    }
 
 
 }

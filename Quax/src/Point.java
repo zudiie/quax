@@ -1,23 +1,24 @@
-/**
- * Represents a logical coordinate on the game board.
- * Used to map internal grid positions to game rules
- */
 
 public class Point {
 
-    private final int col;
-    private final int row;
+    private int x;
+    private int y;
 
-    public Point(int col, int row) {
-        this.col = col;
-        this.row = row;
+    public Point(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+    //this will be used to check if blocks are next to each other down the road
+    public boolean isAdjacent(Point other){
+        return Math.abs(this.x - other.x) <= 1 && Math.abs(this.y - other.y) <= 1;
     }
 
-    public int getCol() {
-        return col;
+    public int getX() {
+        return x;
     }
-    public int getRow() {
-        return row;
+
+    public int getY() {
+        return y;
     }
 
 }
