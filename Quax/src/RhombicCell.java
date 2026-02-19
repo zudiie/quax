@@ -1,3 +1,4 @@
+
 public class RhombicCell extends Cell {
 
     private Point center;

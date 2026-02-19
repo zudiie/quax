@@ -1,3 +1,4 @@
+
 public class OctagonalCell extends Cell {
 
     private final int radius = 2;

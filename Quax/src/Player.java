@@ -1,3 +1,4 @@
+
 public class Player {
 
     protected PlayerColour colour;
@@ -21,6 +22,6 @@ public class Player {
     }
 
 //    public String makeMove(board){
-            //TODO
+//              TODO
 //    }
 }
