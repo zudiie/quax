@@ -33,6 +33,10 @@ public class QuaxController {
         display.printHeader(gamemode);
         runGameLoop();
     }
+    public boolean isRunning() {
+        return running;
+    }
+
 
 
     private void runGameLoop() {
@@ -95,4 +99,25 @@ public class QuaxController {
         display.showMessage("Exiting game...");
     }
 
+    public String getCurrentPlayer() {
+        return currentPlayer.toString();
+    }
+
+
+    public void render() {
+        display.renderBoard(board, currentPlayer);
+    }
+
+    public boolean attemptMove(String input) {
+        return board.placeStone(input, currentPlayer);
+    }
+
+    public void changePlayer(){
+        if (currentPlayer == PlayerColour.WHITE) {
+            currentPlayer = PlayerColour.BLACK;
+        }
+        else if (currentPlayer == PlayerColour.BLACK) {
+            currentPlayer = PlayerColour.WHITE;
+        }
+    }
 }

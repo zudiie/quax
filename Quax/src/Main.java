@@ -22,7 +22,10 @@ public class Main {
                 controller.quitGame();
                 break;
             }
-            controller.attemptMove(input);
+
+            if(controller.attemptMove(input)){
+                controller.changePlayer();
+            }
         }
         scanner.close();
     }
