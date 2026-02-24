@@ -9,13 +9,13 @@ public class Main {
         System.out.println("Quax (Human v Human)");
         System.out.println("Enter a move like A1, B7, K11. Type 'quit' to exit.");
 
-        while (controller.isRunning()){
+        while (controller.isRunning()) {
             controller.render();
 
             System.out.print("Move for " + controller.getCurrentPlayer() + ": ");
             String input = scanner.nextLine();
 
-            if(input == null) continue;
+            if (input == null) continue;
             input = input.trim();
 
             if (input.equalsIgnoreCase("quit")) {
@@ -23,7 +23,7 @@ public class Main {
                 break;
             }
 
-            if(controller.attemptMove(input)){
+            if (controller.attemptMove(input)) {
                 controller.changePlayer();
             }
         }

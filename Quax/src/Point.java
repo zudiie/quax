@@ -1,12 +1,13 @@
-
 public class Point {
-
+    String title;
     private int x;
     private int y;
 
     public Point(int x, int y) {
         this.x = x;
         this.y = y;
+        char columnLetter = (char) (x+65);
+        this.title = columnLetter + String.valueOf(y);
     }
     //this will be used to check if blocks are next to each other down the road
     public boolean isAdjacent(Point other){
@@ -22,3 +23,5 @@ public class Point {
     }
 
 }
+
+

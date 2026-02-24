@@ -1,20 +1,16 @@
 public class Cell {
 
-    protected Point coordinates;
+
     protected PlayerColour colour;
     protected boolean isOccupied;
     protected CellType cellType;
-    private String label;
+    protected Point label;
 
-    Cell(Point coordinates, PlayerColour colour, CellType cellType) {
-        this.coordinates = coordinates;
+    Cell(Point label, PlayerColour colour, CellType cellType) {
+        this.label = label;
         this.colour = colour;
         this.cellType = cellType;
         this.isOccupied = false;
-    }
-
-    public Point getCoordinates() {
-        return coordinates;
     }
 
     public PlayerColour getColour() {
@@ -37,7 +33,7 @@ public class Cell {
         this.isOccupied = isOccupied;
     }
 
-    public String getLabel(){return label;}
+    public Point getLabel(){return label;}
 
     public String getDisplaySymbol() {
             if (colour == PlayerColour.BLACK) return "B";

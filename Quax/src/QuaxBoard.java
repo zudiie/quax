@@ -106,7 +106,7 @@ public class QuaxBoard {
                 OctagonalCell cell = octagonCells.get(key);
 
                 // print cell symbol
-                System.out.print(cell.getDisplaySymbol() + "  ");
+                System.out.print(cell.getDisplaySymbol(  ) + "  ");
 
                 if (j !=  BOARD_SIZE - 1) System.out.print("-  ");
             }

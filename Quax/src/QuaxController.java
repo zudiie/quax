@@ -120,4 +120,8 @@ public class QuaxController {
             currentPlayer = PlayerColour.WHITE;
         }
     }
+
+    public QuaxBoard getBoard() {
+        return board;
+    }
 }
