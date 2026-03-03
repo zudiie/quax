@@ -1,5 +1,6 @@
 package src.softies;
 
+// handles the terminal-based visual representation
 public class GameDisplay {
 
     public void displayStartScreen() {
@@ -14,6 +15,7 @@ public class GameDisplay {
         System.out.println("****************************************\n\n");
     }
 
+    // shows the menu for selecting human or bot mode
     public void displayModeSelection() {
         System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
         System.out.println("****************************************");
@@ -26,6 +28,7 @@ public class GameDisplay {
         System.out.println("****************************************\n\n");
     }
 
+    //prints the header indicating the current game mode
     public void printHeader(GameMode mode) {
         if (mode == GameMode.HUMAN_VS_HUMAN) {
             System.out.print("-----------------      Quax (Human vs Human)      -----------------\n\n");
@@ -45,7 +48,7 @@ public class GameDisplay {
         System.out.print(message);
         try {
             for (int i = 0; i < 3; i++){
-                Thread.sleep(500);
+                Thread.sleep(300);
                 System.out.print(".");
             }
         } catch (InterruptedException e) {
@@ -60,7 +63,7 @@ public class GameDisplay {
 
         int size = board.getBoardSize();
 
-        //print column headers from A to K
+        // column headers A-K
         System.out.print("      ");
         for (char c = 'A'; c < 'A' + size; c++) {
             System.out.print(c + "     ");
@@ -74,26 +77,24 @@ public class GameDisplay {
 
             //octagonal row
             for (int col = 0; col < size; col++) {
-                String label = getLabel(col, i);
+                String label = (char)('A' + col) + "" + i;
                 OctagonalCell cell = board.getOctagonalCell(label);
 
-                String symbol = (cell != null) ? cell.getDisplaySymbol() : "0";
+                String symbol = (cell != null) ? cell.getDisplaySymbol() : ".";
                 System.out.print(symbol + "  ");
-
                 if (col != size - 1) System.out.print("-  ");
             }
             System.out.println();
 
-            //rhombic row
+            // renders the rhombic connections between rows
             if (i > 1) {
                 System.out.print("         ");
                 for (int col = 0; col < size - 1; col++) {
-                    String rKey = "R-" + getLabel(col, i);
+                    String rKey = "R-" + (char)('A' + col) + i;
                     RhombicCell cell = board.getRhombicCell(rKey);
 
                     String symbol = (cell != null) ? cell.getDisplaySymbol() : "x";
                     System.out.print(symbol + "  ");
-
                     if (col != size - 2) System.out.print("-  ");
                 }
                 System.out.println();
@@ -101,24 +102,4 @@ public class GameDisplay {
         }
         System.out.println();
     }
-
-    private String getLabel(int col, int row) {
-        char colChar = (char) ('A' + col);
-        return "" + colChar + row;
-    }
-
-//    public void displayBoard(QuaxBoard board, PlayerColour currentPlayer) {
-//        System.out.println();
-//        System.out.println("Current Player: " + currentPlayer);
-//        System.out.println();
-//
-//        // Board printing is currently static in QuaxBoard
-//        QuaxBoard.displayBoard();
-//        System.out.println();
-//    }
-//
-//        public void showMessage(String message) {
-//        System.out.println(message);
-//        }
-
-    }
+}

@@ -1,5 +1,6 @@
 package src.softies;
 
+// represents a single cell on the quax board
 public class Cell {
 
     protected Point coordinates;
