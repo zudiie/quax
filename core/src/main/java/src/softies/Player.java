@@ -1,5 +1,6 @@
 package src.softies;
 
+// represent a player in the game
 public class Player {
 
     protected PlayerColour colour;
@@ -22,7 +23,4 @@ public class Player {
         return isHuman;
     }
 
-//    public String makeMove(board){
-//              TODO
-//    }
 }

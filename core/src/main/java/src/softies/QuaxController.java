@@ -2,6 +2,7 @@ package src.softies;
 
 import java.util.Scanner;
 
+// the controller maanages the game flow, user input and turn logics
 public class QuaxController {
 
     private final QuaxBoard board;
@@ -16,31 +17,25 @@ public class QuaxController {
         this.scanner = new Scanner(System.in);
         this.board = new QuaxBoard();
         this.display = new GameDisplay();
-        this.currentPlayer = PlayerColour.BLACK;
+        this.currentPlayer = PlayerColour.BLACK; // black moves first per rules
         this.running = true;
     }
 
+    // launches the game sequence
     public void launch() {
-        // show start screen
         display.displayStartScreen();
         if (!waitForEnterOrQuit()) return;
 
-        // select mode
         display.displayModeSelection();
         this.gamemode = getGameModeInput();
 
         display.showLoading("Launching " + gamemode);
 
-        //start game loop
         display.printHeader(gamemode);
         runGameLoop();
     }
-    public boolean isRunning() {
-        return running;
-    }
 
-
-
+    // main game loop
     private void runGameLoop() {
         while (running) {
             display.renderBoard(board, currentPlayer);
@@ -53,26 +48,24 @@ public class QuaxController {
                 break;
             }
 
-            // attempt move
-            if (board.isValidLabel(input)) {
-                boolean success = board.placeStone(input, currentPlayer);
-                if (success) {
-                    switchTurn();
-                } else {
-                    display.showMessage("Cell is already occupied.");
-                }
+            // check move validity and occupancy
+            if (board.placeStone(input, currentPlayer)) {
+                switchTurn();
             } else {
-                display.showMessage("Invalid coordinate. Try format 'A1', 'K11'.");
+                // clear error message indicating turn does not change
+                System.out.println("system: turn remains with " + currentPlayer + " due to invalid move.");
             }
         }
         scanner.close();
     }
 
+    // switches turn between black and white
     private void switchTurn() {
-        if (currentPlayer == PlayerColour.BLACK) currentPlayer = PlayerColour.WHITE;
-        else currentPlayer = PlayerColour.BLACK;
+        currentPlayer = (currentPlayer == PlayerColour.BLACK) ? PlayerColour.WHITE : PlayerColour.BLACK;
     }
 
+
+    // utility to handle start screen input
     private boolean waitForEnterOrQuit() {
         while (true) {
             String input = scanner.nextLine().trim();
@@ -85,6 +78,7 @@ public class QuaxController {
         }
     }
 
+    // handles mode selection with validation
     private GameMode getGameModeInput() {
         while (true) {
             System.out.print(">> ");
@@ -101,25 +95,4 @@ public class QuaxController {
         display.showMessage("Exiting game...");
     }
 
-    public String getCurrentPlayer() {
-        return currentPlayer.toString();
-    }
-
-
-    public void render() {
-        display.renderBoard(board, currentPlayer);
-    }
-
-    public boolean attemptMove(String input) {
-        return board.placeStone(input, currentPlayer);
-    }
-
-    public void changePlayer(){
-        if (currentPlayer == PlayerColour.WHITE) {
-            currentPlayer = PlayerColour.BLACK;
-        }
-        else if (currentPlayer == PlayerColour.BLACK) {
-            currentPlayer = PlayerColour.WHITE;
-        }
-    }
 }
