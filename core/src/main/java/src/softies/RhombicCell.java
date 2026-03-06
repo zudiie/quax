@@ -11,7 +11,10 @@ public class RhombicCell extends Cell {
 
     @Override
     public String getDisplaySymbol() {
-        return "o";
+        if (isOccupied()) {
+            if (colour == PlayerColour.BLACK) return "B";
+            if (colour == PlayerColour.WHITE) return "W";
+        }
+        return "o"; // empty rhombus
     }
-
 }
