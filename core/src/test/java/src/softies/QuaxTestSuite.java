@@ -56,15 +56,6 @@ public class QuaxTestSuite {
             board = new QuaxBoard();
         }
 
-//        @Test
-//        @DisplayName("Boundary: Valid and Invalid labels")
-//        void testLabelValidation() {
-//            assertTrue(board.isValidOctCellLabel("A1"), "A1 is the start boundary"); //instead of isValidOctCellLabel, lets do isValidLabel
-//            assertTrue(board.isValidOctCellLabel("K11"), "K11 is the end boundary"); // ^ will provide an easier interface
-//            assertFalse(board.isValidOctCellLabel("L12"), "L12 is out of bounds");
-//            assertFalse(board.isValidOctCellLabel(""), "Empty string should be invalid");
-//        }
-
         @Test
         @DisplayName("Functionality: Stone placement and overlap prevention")
         void testStonePlacement() {
