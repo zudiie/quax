@@ -2,10 +2,25 @@
 eclipse.project.name = appName + '-core'
 
 dependencies {
-  api "com.badlogicgames.gdx:gdx:$gdxVersion"
-  api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
+    api "com.badlogicgames.gdx:gdx:$gdxVersion"
+    api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
 
-  if(enableGraalNative == 'true') {
-    implementation "io.github.berstanio:gdx-svmhelper-annotations:$graalHelperVersion"
-  }
+    // JUnit 4 for new tests
+    testImplementation "junit:junit:4.13.2"
+
+    // JUnit 5 for old test suite
+    testImplementation "org.junit.jupiter:junit-jupiter:5.9.2"
+
+    // Vintage engine to run JUnit 4 tests under JUnit 5 platform
+    testRuntimeOnly "org.junit.vintage:junit-vintage-engine:5.9.2"
+
+    // JUnit Platform Launcher (required by Gradle)
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
 }

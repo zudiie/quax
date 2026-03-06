@@ -1,6 +1,5 @@
 package src.softies.board;
 
-import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.MapObject;
 import com.badlogic.gdx.maps.objects.TextureMapObject;
@@ -28,6 +27,12 @@ public class InputHandler {
     private static final int GID_BLACK_OCT = 8;
     private static final int GID_WHITE_OCT = 7;
 
+    public enum MoveResult {
+        SUCCESS,        // move made, turn toggled
+        OCCUPIED,       // cell already occupied
+        NOT_A_CELL      // clicked on empty space
+    }
+
     public InputHandler(TiledMap map, TiledMapTileLayer octagonLayer, MapLayer diamondLayer,
                         float unitScale, GameState gameState, Viewport viewport) {
         this.map = map;
@@ -42,9 +47,9 @@ public class InputHandler {
      * Processes a touch on the board.
      * @param screenX screen x coordinate
      * @param screenY screen y coordinate
-     * @return true if a move was made, false otherwise
+     * @return MoveResult indicating what happened
      */
-    public boolean handleBoardClick(int screenX, int screenY) {
+    public MoveResult handleBoardClick(int screenX, int screenY) {
         Vector3 touchPos = new Vector3(screenX, screenY, 0);
         viewport.unproject(touchPos);
 
@@ -56,7 +61,6 @@ public class InputHandler {
         for (MapObject object : diamondLayer.getObjects()) {
             if (object instanceof TextureMapObject) {
                 TextureMapObject tmo = (TextureMapObject) object;
-                if (tmo.getProperties().containsKey("occupied")) continue;
 
                 float objW = tmo.getProperties().get("width", Float.class) * unitScale;
                 float objH = tmo.getProperties().get("height", Float.class) * unitScale;
@@ -67,11 +71,17 @@ public class InputHandler {
                 if (touchPos.x >= worldX && touchPos.x <= worldX + objW &&
                     touchPos.y >= worldY && touchPos.y <= worldY + objH) {
 
+                    // occupied diamond?
+                    if (tmo.getProperties().containsKey("occupied")) {
+                        return MoveResult.OCCUPIED;
+                    }
+
+                    // place stone
                     int gid = (gameState.getCurrentPlayer() == PlayerColour.BLACK) ? GID_BLACK_RHO : GID_WHITE_RHO;
                     tmo.setTextureRegion(map.getTileSets().getTile(gid).getTextureRegion());
                     tmo.getProperties().put("occupied", true);
                     gameState.togglePlayer();
-                    return true;
+                    return MoveResult.SUCCESS;
                 }
             }
         }
@@ -85,14 +95,14 @@ public class InputHandler {
             int currentGid = cell.getTile().getId();
             if (currentGid == GID_BLACK_OCT || currentGid == GID_WHITE_OCT ||
                 currentGid == GID_BLACK_RHO || currentGid == GID_WHITE_RHO) {
-                return false; // already occupied
+                return MoveResult.OCCUPIED; // already occupied
             }
 
             int targetGid = (gameState.getCurrentPlayer() == PlayerColour.BLACK) ? GID_BLACK_OCT : GID_WHITE_OCT;
             cell.setTile(map.getTileSets().getTile(targetGid));
             gameState.togglePlayer();
-            return true;
+            return MoveResult.SUCCESS;
         }
-        return false;
+        return MoveResult.NOT_A_CELL;
     }
 }
