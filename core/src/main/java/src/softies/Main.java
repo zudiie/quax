@@ -47,7 +47,7 @@ public class Main extends ApplicationAdapter {
 
     // Constants
     private final float unitScale = 0.25f;
-    private final float margin = 150f;
+    private final float margin = 220f; //originally 150f, increased to display instructions to win
     private final float offsetX = 20f;
     private final float offsetY = 2000f;
 
@@ -266,6 +266,8 @@ public class Main extends ApplicationAdapter {
         statusMessage = message;
         statusMessageUntil = seconds;
     }
+
+
 
     @Override
     public void resize(int width, int height) {

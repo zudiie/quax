@@ -1,5 +1,6 @@
 package src.softies.board;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -63,5 +64,33 @@ public class BoardRenderer {
         float titleX = world.boardCenterX - titleLayout.width / 2;
         float titleY = world.boardMaxY + 130f;
         font.draw(batch, title, titleX, titleY);
+
+        // --- Configuration ---
+        float rightMarginX = world.boardMaxX + 40f;
+        float verticalSpacing = 40f; // Gap between list items
+        float headerOffset = 250f;   // How high the list starts above the board center
+
+// --- 1. Draw "OBJECTIVES:" Header ---
+        String header = "OBJECTIVES:";
+        font.setColor(Color.WHITE); // Standard UI Color
+        float headerY = world.boardCenterY + headerOffset;
+        font.draw(batch, header, rightMarginX, headerY);
+
+// --- 2. Draw WHITE Objective ---
+// Format: "• WHITE: Left to Right"
+        String whiteObj = "• WHITE: Left to Right";
+        float whiteY = headerY - verticalSpacing;
+        font.draw(batch, whiteObj, rightMarginX, whiteY);
+
+// --- 3. Draw BLACK Objective ---
+// Format: "• BLACK: Top to Bottom"
+        String blackObj = "• BLACK: Top to Bottom";
+        float blackY = whiteY - verticalSpacing;
+
+        font.setColor(Color.BLACK); // Match the player color
+        font.draw(batch, blackObj, rightMarginX, blackY);
+
+// --- 4. RESET ---
+        font.setColor(Color.WHITE); // Reset so other UI elements aren't black
     }
 }
