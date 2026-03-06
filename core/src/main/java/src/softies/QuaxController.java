@@ -95,7 +95,7 @@ public class QuaxController {
         display.showMessage("Exiting game...");
     }
 
-<<<<<<< HEAD:Quax/src/QuaxController.java
+
     public String getCurrentPlayer() {
         return currentPlayer.toString();
     }
@@ -122,6 +122,4 @@ public class QuaxController {
         return board;
     }
 }
-=======
-}
->>>>>>> 0bd1067f4dfabb8f693ecef440b728743658350e:core/src/main/java/src/softies/QuaxController.java
+

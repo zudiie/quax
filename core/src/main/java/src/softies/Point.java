@@ -1,8 +1,7 @@
-<<<<<<< HEAD:Quax/src/Point.java
-=======
+
 package src.softies;
 
->>>>>>> 0bd1067f4dfabb8f693ecef440b728743658350e:core/src/main/java/src/softies/Point.java
+
 public class Point {
     String title;
     private int x;
