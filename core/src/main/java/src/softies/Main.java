@@ -282,5 +282,3 @@ public class Main extends ApplicationAdapter {
         if (shapeRenderer != null) shapeRenderer.dispose();
     }
 }
-
-
