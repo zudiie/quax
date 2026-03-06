@@ -19,13 +19,27 @@ public class BoardRenderer {
         this.viewport = viewport;
     }
 
-    public void render(SpriteBatch batch, BitmapFont font) {
+    /**
+     * Draws all board labels and status messages.
+     * @param batch the SpriteBatch to use
+     * @param font the font to draw with
+     * @param statusMessage optional temporary message (e.g., "Invalid move")
+     */
+    public void render(SpriteBatch batch, BitmapFont font, String statusMessage) {
         // draw current player's turn text at the top center
         String turnText = "Current Turn: " + gameState.getCurrentPlayer();
         GlyphLayout turnLayout = new GlyphLayout(font, turnText);
         float turnX = (viewport.getWorldWidth() - turnLayout.width) / 2f;
         float turnY = 45;
         font.draw(batch, turnText, turnX, turnY);
+
+        // draw status message if present (just below the turn text)
+        if (statusMessage != null && !statusMessage.isEmpty()) {
+            GlyphLayout statusLayout = new GlyphLayout(font, statusMessage);
+            float statusX = (viewport.getWorldWidth() - statusLayout.width) / 2f;
+            float statusY = viewport.getWorldHeight() - 20f;
+            font.draw(batch, statusMessage, statusX, statusY);
+        }
 
         // row numbers on the left (1 to 11, bottom to top)
         for (int row = 1; row <= 11; row++) {
