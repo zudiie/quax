@@ -1,5 +1,6 @@
 META-INF/MANIFEST.MF
 PolygonalGrid.tmx
+QuaxTiles.tsx
 SF-Pro-Display-Bold.ttf
 libgdx.png
 octagonal_tile.tsx
