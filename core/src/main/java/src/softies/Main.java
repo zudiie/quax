@@ -77,6 +77,17 @@ public class Main extends ApplicationAdapter {
     // temporary UI status message (invalid move feedback)
     private String statusMessage = "";
     private float statusMessageUntil = 0f; // seconds remaining
+
+    // --- Pie Rule State (Builder 2) ---
+    private boolean firstMoveMade = false;
+    private boolean pieRuleAvailable = true;
+    private int firstMoveCellX = -1;
+    private int firstMoveCellY = -1;
+
+    // --- Game State Integration (builder 2) ---
+    private boolean gameOver = false;
+    private PlayerColour winner = null;
+
     /**
      * Called once when the application starts.
      * Loads the map, computes dimensions, sets up the camera, and creates rendering objects.
@@ -197,6 +208,28 @@ public class Main extends ApplicationAdapter {
             }
         }
 
+        // --- Pie Rule Activation (press P) ---
+        if (pieRuleAvailable && firstMoveMade && Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.P)) {
+            TiledMapTileLayer.Cell firstCell = octagonLayer.getCell(firstMoveCellX, firstMoveCellY);
+            if (firstCell != null && firstCell.getTile() != null) {
+                int currentGid = firstCell.getTile().getId();
+
+                // swap colour
+                if (currentGid == GID_BLACK_OCT) {
+                    firstCell.setTile(map.getTileSets().getTile(GID_WHITE_OCT));
+                } else if (currentGid == GID_WHITE_OCT) {
+                    firstCell.setTile(map.getTileSets().getTile(GID_BLACK_OCT));
+                }
+
+                pieRuleAvailable = false;
+
+                // keep turn consistent (player effectively swaps sides)
+                togglePlayer();
+
+                showStatusMessage("Pie rule activated.", 2f);
+            }
+        }
+
 
         viewport.apply();                // update the viewport to the current window size
         renderer.setView(camera);        // set the camera for the map renderer
@@ -273,6 +306,16 @@ public class Main extends ApplicationAdapter {
         float turnX = (viewport.getWorldWidth() - turnLayout.width) / 2f;
         float turnY = 45;
         font.draw(batch, turnText, turnX, turnY);
+
+        // if the game has ended, show the winner above the turn text
+        if (gameOver && winner != null) {
+            String winnerText = winner + " wins!";
+            GlyphLayout winnerLayout = new GlyphLayout(font, winnerText);
+            float winnerX = (viewport.getWorldWidth() - winnerLayout.width) / 2f;
+            float winnerY = turnY + 35f;
+            font.draw(batch, winnerText, winnerX, winnerY);
+        }
+
 
         // invalid-move feedback (top center)
         if (!statusMessage.isEmpty()) {
@@ -411,6 +454,7 @@ public class Main extends ApplicationAdapter {
      * Checks clicks on the quit button or confirmation dialog, otherwise forwards to board interaction.
      */
     private void handleInput() {
+        if (gameOver) return;
         if (!Gdx.input.justTouched()) return;
 
         Vector3 touchPos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
@@ -492,6 +536,14 @@ public class Main extends ApplicationAdapter {
 
             int targetGid = (currentPlayer == PlayerColour.BLACK) ? GID_BLACK_OCT : GID_WHITE_OCT;
             cell.setTile(map.getTileSets().getTile(targetGid));
+
+            // record first move for pie rule
+            if (!firstMoveMade) {
+                firstMoveMade = true;
+                firstMoveCellX = cellX;
+                firstMoveCellY = cellY;
+            }
+
             togglePlayer();
         }
     }
@@ -545,6 +597,13 @@ public class Main extends ApplicationAdapter {
         statusMessage = message;
         statusMessageUntil = seconds;
     }
+
+    private void endGame(PlayerColour winnerColour) {
+        gameOver = true;
+        winner = winnerColour;
+        showStatusMessage(winner + " wins!", 3f);
+    }
+
     /**
      * Switches the current player between BLACK and WHITE.
      */
