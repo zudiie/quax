@@ -7,6 +7,8 @@ import src.softies.PlayerColour;
 public class GameState {
 
     private PlayerColour currentPlayer;
+    private boolean firstMoveMade;
+    private boolean pieRuleUsed;
 
     /**
      * initialises the game state with BLACK going first, as per the rules
@@ -14,13 +16,47 @@ public class GameState {
     public GameState() {
         // black always goes first in Quax
         currentPlayer = PlayerColour.BLACK;
+        firstMoveMade = false;
+        pieRuleUsed = false;
     }
+
 
     /**
      * @return whichever player's turn it currently is
      */
     public PlayerColour getCurrentPlayer() {
         return currentPlayer;
+    }
+
+    public boolean isFirstMoveMade() {
+        return firstMoveMade;
+    }
+
+    public void setFirstMoveMade() {
+        this.firstMoveMade = true;
+    }
+
+    public boolean isPieRuleUsed() {
+        return pieRuleUsed;
+    }
+
+    public void setPieRuleUsed() {
+        this.pieRuleUsed = true;
+    }
+
+    /**
+     * applies the pie rule after the first move, if it has not already been used
+     * swaps the turn once and marks the pie rule as used
+     */
+    public void applyPieRule() {
+        if (firstMoveMade && !pieRuleUsed) {
+            currentPlayer = (currentPlayer == PlayerColour.BLACK)
+                ? PlayerColour.WHITE
+                : PlayerColour.BLACK;
+
+            pieRuleUsed = true;
+            System.out.println("Pie rule applied. Players swapped.");
+        }
     }
 
     /**
@@ -33,3 +69,4 @@ public class GameState {
         System.out.println("It is now " + currentPlayer + "'s turn.");
     }
 }
+
