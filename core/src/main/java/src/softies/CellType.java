@@ -1,6 +1,7 @@
 package src.softies;
 
-// represent the shape of the cell on the board
+// the two possible shapes a cell can be on the Quax board
+// octagons are where stones are placed, rhombuses sit in between and act as connectors
 public enum CellType {
     OCTAGON, RHOMBUS;
 }
