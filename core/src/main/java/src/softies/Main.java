@@ -154,24 +154,26 @@ public class Main extends ApplicationAdapter {
         // main UI font — small, white with a thin black border for readability over tiles
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("SF-Pro-Display-Bold.ttf"));
         FreeTypeFontParameter parameter = new FreeTypeFontParameter();
-        parameter.size = 20;
+        parameter.size = 100;
         parameter.color = Color.WHITE;
         parameter.kerning = true;
         parameter.spaceX = -1;
         parameter.borderColor = Color.BLACK;
-        parameter.borderWidth = 1;
+        parameter.borderWidth = 5;
         font = generator.generateFont(parameter);
-        // dispose immediately after generating — the font atlas is already on the GPU
+        font.getData().setScale(0.2f);
+        // dispose immediately after generating - the font atlas is already on the GPU
         generator.dispose();
 
         // welcome screen font — bigger with a thicker border so it stands out
         FreeTypeFontGenerator welcomeGen = new FreeTypeFontGenerator(Gdx.files.internal("SF-Pro-Display-Bold.ttf"));
         FreeTypeFontParameter welcomeParam = new FreeTypeFontParameter();
-        welcomeParam.size = 30;
+        welcomeParam.size = 150;
         welcomeParam.color = Color.WHITE;
         welcomeParam.borderColor = Color.BLACK;
-        welcomeParam.borderWidth = 2;
+        welcomeParam.borderWidth = 10;
         welcomeFont = welcomeGen.generateFont(welcomeParam);
+        welcomeFont.getData().setScale(0.2f);
         welcomeGen.dispose();
     }
 
