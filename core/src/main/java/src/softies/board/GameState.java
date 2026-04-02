@@ -2,79 +2,109 @@ package src.softies.board;
 
 import src.softies.PlayerColour;
 
-// holds the live state of the game — current player, first move flag, and pie rule availability
-// anything that needs to be shared across renderers, input handlers, etc. lives here
+// holds the live state of the game — current player, player colour assignments, and pie rule state
+// the pie rule swaps which colour each player plays, the board tiles are never changed
 public class GameState {
 
+    // each player's currently assigned colour — these swap when pie rule is activated
+    private PlayerColour player1Colour;
+    private PlayerColour player2Colour;
+
+    // the colour whose turn it is right now (derived from player colours, not player number)
     private PlayerColour currentPlayer;
-    // true once BLACK has placed their first stone
+
+    // true once BLACK's very first stone has been placed
     private boolean firstMoveMade = false;
-    // true during WHITE's first turn only — the window where pie rule can be activated
+
+    // true only during WHITE's first turn — the only window when pie rule can be activated
     private boolean pieRuleAvailable = false;
 
     /**
-     * initialises the game state with BLACK going first, as per the rules
+     * sets up the game: Player 1 starts as BLACK, Player 2 starts as WHITE, BLACK moves first
      */
     public GameState() {
+        player1Colour = PlayerColour.BLACK;
+        player2Colour = PlayerColour.WHITE;
         currentPlayer = PlayerColour.BLACK;
     }
 
     /**
-     * @return whichever player's turn it currently is
+     * @return the colour currently assigned to Player 1 (changes if pie rule is activated)
+     */
+    public PlayerColour getPlayer1Colour() {
+        return player1Colour;
+    }
+
+    /**
+     * @return the colour currently assigned to Player 2 (changes if pie rule is activated)
+     */
+    public PlayerColour getPlayer2Colour() {
+        return player2Colour;
+    }
+
+    /**
+     * @return the colour of whichever player should move right now
      */
     public PlayerColour getCurrentPlayer() {
         return currentPlayer;
     }
 
     /**
-     * @return true once the very first stone has been placed on the board
+     * @return true once BLACK has placed the first stone on the board
      */
     public boolean isFirstMoveMade() {
         return firstMoveMade;
     }
 
     /**
-     * marks that BLACK's first move has been made and opens the pie rule window for WHITE
-     * only has an effect the first time it's called — subsequent calls are ignored
+     * called after BLACK's first stone is placed — opens the pie rule window for WHITE
+     * safe to call multiple times, only takes effect once
      */
     public void setFirstMoveMade() {
         if (!firstMoveMade) {
             firstMoveMade    = true;
-            // opening the pie rule window — WHITE now has the option to swap colours
+            // WHITE now has the option to swap colours on their first turn
             pieRuleAvailable = true;
         }
     }
 
     /**
-     * @return true if the pie rule button should currently be visible and clickable
-     * only true during WHITE's very first turn
+     * @return true if the pie rule button should be shown — only during WHITE's first turn
      */
     public boolean isPieRuleAvailable() {
         return pieRuleAvailable;
     }
 
     /**
-     * swaps player colours — WHITE becomes BLACK and BLACK becomes WHITE
-     * closes the pie rule window immediately so the button disappears
+     * activates the pie rule: swaps the colour assigned to each player
+     * the board tiles are untouched — only player assignments change
+     * after activation, WHITE plays next (Player 1 is now WHITE and moves immediately)
      */
     public void activatePieRule() {
-        // swap whoever is currently playing
-        currentPlayer    = (currentPlayer == PlayerColour.WHITE) ? PlayerColour.BLACK : PlayerColour.WHITE;
-        // pie rule can only ever be used once — close the window
+        // swap the colour labels so each player now plays the other colour
+        PlayerColour tmp = player1Colour;
+        player1Colour    = player2Colour;
+        player2Colour    = tmp;
+
+        // after the swap, WHITE plays next — Player 1 is now WHITE
+        currentPlayer    = PlayerColour.WHITE;
+
+        // close the pie rule window — can only ever be used once
         pieRuleAvailable = false;
-        System.out.println("Pie rule activated — colours swapped. It is now " + currentPlayer + "'s turn.");
+
+        System.out.println("Pie rule activated — Player 1 is now " + player1Colour
+            + ", Player 2 is now " + player2Colour + ". WHITE to move.");
     }
 
     /**
-     * flips the turn to the other player after a valid move
-     * also closes the pie rule window if WHITE just made their first normal move without using it
+     * advances the turn to the other colour
+     * also closes the pie rule window if WHITE makes a normal move instead of using it
      */
     public void togglePlayer() {
-        // if WHITE makes their first normal move, the pie rule opportunity expires
+        // if WHITE passes on the pie rule by making a normal move, the window closes
         if (pieRuleAvailable && currentPlayer == PlayerColour.WHITE) {
             pieRuleAvailable = false;
         }
-        // ternary swap — black becomes white and vice versa
         currentPlayer = (currentPlayer == PlayerColour.BLACK) ? PlayerColour.WHITE : PlayerColour.BLACK;
         System.out.println("It is now " + currentPlayer + "'s turn.");
     }
