@@ -23,6 +23,10 @@ public class InputHandler {
     private final Viewport viewport;
     private final QuaxBoard boardLogic;
 
+    // references to the first placed tile so pie rule can swap its colour
+    private TiledMapTileLayer.Cell firstOctagonCell = null;
+    private TextureMapObject firstRhombusTMO = null;
+
     // tile GIDs from the tileset — these correspond to specific tile images
     private static final int GID_EMPTY_RHO = 2;
     private static final int GID_WHITE_RHO = 3;
@@ -118,6 +122,7 @@ public class InputHandler {
             tmo.getProperties().put("occupied", true);
 
             if (!gameState.isFirstMoveMade()) {
+                firstRhombusTMO = tmo;
                 gameState.setFirstMoveMade();
             }
 
@@ -145,6 +150,7 @@ public class InputHandler {
             cell.setTile(map.getTileSets().getTile(targetGid));
 
             if (!gameState.isFirstMoveMade()) {
+                firstOctagonCell = cell;
                 gameState.setFirstMoveMade();
             }
 
@@ -154,5 +160,21 @@ public class InputHandler {
 
         // nothing was hit
         return MoveResult.NOT_A_CELL;
+    }
+
+    /**
+     * swaps the colour of the first placed tile — called when the pie rule is activated
+     * so the tile visually reflects the new owner
+     */
+    public void swapFirstTileColour() {
+        if (firstOctagonCell != null) {
+            int currentGid = firstOctagonCell.getTile().getId();
+            int newGid = (currentGid == GID_BLACK_OCT) ? GID_WHITE_OCT : GID_BLACK_OCT;
+            firstOctagonCell.setTile(map.getTileSets().getTile(newGid));
+        }
+        if (firstRhombusTMO != null) {
+            int newGid = GID_WHITE_RHO;
+            firstRhombusTMO.setTextureRegion(map.getTileSets().getTile(newGid).getTextureRegion());
+        }
     }
 }

@@ -126,6 +126,7 @@ public class Main extends ApplicationAdapter {
         // wire up all the subsystem helpers — UIController gets gameState for the pie rule button
         uiController  = new UIController(viewport, camera, world, gameState);
         inputHandler  = new InputHandler(map, octagonLayer, diamondLayer, unitScale, gameState, viewport, boardLogic);
+        uiController.setInputHandler(inputHandler);
         boardRenderer = new BoardRenderer(world, gameState, viewport);
 
         generateFont();

@@ -20,6 +20,7 @@ public class UIController {
     private final OrthographicCamera camera;
     private final WorldCalculator world;
     private final GameState gameState;
+    private InputHandler inputHandler;
 
     private boolean showQuitConfirm   = false;
     private Rectangle quitButtonBounds;
@@ -47,6 +48,10 @@ public class UIController {
         this.camera     = camera;
         this.world      = world;
         this.gameState  = gameState;
+    }
+
+    public void setInputHandler(InputHandler inputHandler) {
+        this.inputHandler = inputHandler;
     }
 
     /**
@@ -230,6 +235,9 @@ public class UIController {
         // pie rule button — only reachable when pieRuleButtonBounds is non-null (i.e. available)
         if (pieRuleButtonBounds != null && pieRuleButtonBounds.contains(touchPos.x, touchPos.y)) {
             gameState.activatePieRule();
+            if (inputHandler != null) {
+                inputHandler.swapFirstTileColour();
+            }
             return true;
         }
 
