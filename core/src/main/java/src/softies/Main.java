@@ -107,7 +107,7 @@ public class Main extends ApplicationAdapter {
         world = new WorldCalculator(unitScale);
         world.compute(map, octagonLayer);
 
-        // cache the octagon layer offset - used when rendering diamonds to align them correctly
+        // cache the octagon layer offset — used when rendering diamonds to align them correctly
         layerOffsetX = octagonLayer.getOffsetX() * unitScale;
         layerOffsetY = octagonLayer.getOffsetY() * unitScale;
 
@@ -123,8 +123,8 @@ public class Main extends ApplicationAdapter {
         batch = new SpriteBatch();
         shapeRenderer = new ShapeRenderer();
 
-        // wire up all the subsystem helpers
-        uiController  = new UIController(viewport, camera, world);
+        // wire up all the subsystem helpers — UIController gets gameState for the pie rule button
+        uiController  = new UIController(viewport, camera, world, gameState);
         inputHandler  = new InputHandler(map, octagonLayer, diamondLayer, unitScale, gameState, viewport, boardLogic);
         boardRenderer = new BoardRenderer(world, gameState, viewport);
 
@@ -133,7 +133,6 @@ public class Main extends ApplicationAdapter {
 
     /**
      * positions the camera so the board fits the viewport with the UI panel offset accounted for
-     * adds the margin and offsetZ so the right-side panel doesn't get cropped
      */
     private void setupCamera() {
         // make the world a bit wider to accommodate the objectives panel on the right
@@ -151,27 +150,28 @@ public class Main extends ApplicationAdapter {
      * both load from the same TTF file with different size and border settings
      */
     private void generateFont() {
-        // main UI font — small, white with a thin black border for readability over tiles
+        // generate at a high size then scale down — gives sharper glyphs on high-DPI screens
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("SF-Pro-Display-Bold.ttf"));
         FreeTypeFontParameter parameter = new FreeTypeFontParameter();
-        parameter.size = 20;
+        parameter.size = 100;
         parameter.color = Color.WHITE;
         parameter.kerning = true;
         parameter.spaceX = -1;
         parameter.borderColor = Color.BLACK;
-        parameter.borderWidth = 1;
+        parameter.borderWidth = 5;
         font = generator.generateFont(parameter);
+        font.getData().setScale(0.2f);
         // dispose immediately after generating — the font atlas is already on the GPU
         generator.dispose();
 
-        // welcome screen font — bigger with a thicker border so it stands out
         FreeTypeFontGenerator welcomeGen = new FreeTypeFontGenerator(Gdx.files.internal("SF-Pro-Display-Bold.ttf"));
         FreeTypeFontParameter welcomeParam = new FreeTypeFontParameter();
-        welcomeParam.size = 30;
+        welcomeParam.size = 150;
         welcomeParam.color = Color.WHITE;
         welcomeParam.borderColor = Color.BLACK;
-        welcomeParam.borderWidth = 2;
+        welcomeParam.borderWidth = 10;
         welcomeFont = welcomeGen.generateFont(welcomeParam);
+        welcomeFont.getData().setScale(0.2f);
         welcomeGen.dispose();
     }
 
@@ -220,7 +220,7 @@ public class Main extends ApplicationAdapter {
         boardRenderer.render(batch, font, statusMessage);
         batch.end();
 
-        // draw the quit button and any dialog on top of everything else
+        // draw the quit button, pie rule button, and any dialog on top of everything else
         uiController.draw(shapeRenderer, batch, font);
     }
 
@@ -231,7 +231,7 @@ public class Main extends ApplicationAdapter {
     private void renderDiamondLayer() {
         int mapHeightInTiles = map.getProperties().get("height", Integer.class);
         int tileHeightPx     = map.getProperties().get("tileheight", Integer.class);
-        // total map height in world units - needed to flip tiled's top-down y to libgdx's bottom-up
+        // total map height in world units — needed to flip tiled's top-down y to libgdx's bottom-up
         float worldMapHeight = mapHeightInTiles * tileHeightPx * unitScale;
 
         MapLayer diamondLayer = map.getLayers().get("Diamonds");
@@ -293,7 +293,7 @@ public class Main extends ApplicationAdapter {
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
 
-        // centre the "QUAX" title above the button using glyph layout for accurate width
+        // centre the "QUAX" title using glyph layout for accurate width
         String welcomeTitle = "QUAX";
         GlyphLayout wlTitle = new GlyphLayout(welcomeFont, welcomeTitle);
         float titleX = world.boardCenterX + (offsetZ - wlTitle.width) / 2f;
@@ -345,7 +345,7 @@ public class Main extends ApplicationAdapter {
             return;
         }
 
-        // give the ui controller first dibs — quit button and dialog take priority
+        // give the ui controller first dibs — quit button, pie rule button, and dialog take priority
         if (uiController.handleInput(touchPos)) {
             return;
         }
@@ -354,7 +354,6 @@ public class Main extends ApplicationAdapter {
         InputHandler.MoveResult result = inputHandler.handleBoardClick(Gdx.input.getX(), Gdx.input.getY());
         switch (result) {
             case OCCUPIED:
-                // let the player know they clicked a taken cell
                 showStatusMessage("Invalid move. Select an empty cell.", 1.6f);
                 break;
             case NOT_A_CELL:
@@ -377,8 +376,8 @@ public class Main extends ApplicationAdapter {
     }
 
     /**
-     * called by libgdx when the window is resized - updates the viewport and projection matrix
-     * @param width new window width in pixels
+     * called by libgdx when the window is resized — updates the viewport and projection matrix
+     * @param width  new window width in pixels
      * @param height new window height in pixels
      */
     @Override
@@ -389,7 +388,7 @@ public class Main extends ApplicationAdapter {
     }
 
     /**
-     * called by libgdx on shutdown - releases all native resources to avoid memory leaks
+     * called by libgdx on shutdown — releases all native resources to avoid memory leaks
      */
     @Override
     public void dispose() {

@@ -117,6 +117,10 @@ public class InputHandler {
             tmo.setTextureRegion(map.getTileSets().getTile(gid).getTextureRegion());
             tmo.getProperties().put("occupied", true);
 
+            if (!gameState.isFirstMoveMade()) {
+                gameState.setFirstMoveMade();
+            }
+
             gameState.togglePlayer();
             return MoveResult.SUCCESS;
         }
@@ -139,6 +143,11 @@ public class InputHandler {
             // swap the tile to the current player's coloured version and pass the turn
             int targetGid = (gameState.getCurrentPlayer() == PlayerColour.BLACK) ? GID_BLACK_OCT : GID_WHITE_OCT;
             cell.setTile(map.getTileSets().getTile(targetGid));
+
+            if (!gameState.isFirstMoveMade()) {
+                gameState.setFirstMoveMade();
+            }
+
             gameState.togglePlayer();
             return MoveResult.SUCCESS;
         }
