@@ -9,6 +9,7 @@ public class QuaxController {
     private final QuaxBoard board;
     private final GameDisplay display;
     private final Scanner scanner;
+    private final WinCheck winCheck;
 
     private PlayerColour currentPlayer;
     private boolean running;
@@ -22,6 +23,7 @@ public class QuaxController {
         this.scanner = new Scanner(System.in);
         this.board = new QuaxBoard();
         this.display = new GameDisplay();
+        this.winCheck = new WinCheck(board);
         // black kicks things off
         this.currentPlayer = PlayerColour.BLACK;
         this.running = true;
@@ -64,6 +66,12 @@ public class QuaxController {
 
             // only switch turns if the move actually went through
             if (board.placeStone(input, currentPlayer)) {
+                if (winCheck.checkWin(currentPlayer)) {
+                    display.renderBoard(board, currentPlayer);
+                    System.out.println(currentPlayer + " wins!");
+                    running = false;
+                    break;
+                }
                 switchTurn();
             } else {
                 // invalid or occupied — same player tries again

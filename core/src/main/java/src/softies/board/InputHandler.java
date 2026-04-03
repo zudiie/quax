@@ -10,6 +10,7 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import src.softies.PlayerColour;
 import src.softies.QuaxBoard;
+import src.softies.WinCheck;
 
 // translates raw screen clicks into board moves
 // checks both the octagon layer and the diamond (rhombus) object layer for hits
@@ -22,6 +23,7 @@ public class InputHandler {
     private final GameState gameState;
     private final Viewport viewport;
     private final QuaxBoard boardLogic;
+    private final WinCheck winCheck;
 
     // references to the first placed tile so pie rule can swap its colour
     private TiledMapTileLayer.Cell firstOctagonCell = null;
@@ -38,6 +40,7 @@ public class InputHandler {
     // the possible outcomes of a move attempt
     public enum MoveResult {
         SUCCESS,            // move went through and turn was toggled
+        WIN,                // move went through and the player has won
         OCCUPIED,           // the clicked cell was already taken
         NOT_A_CELL,         // the click didn't land on any valid cell
         INVALID_PLACEMENT   // rhombus placement wasn't between two valid stones
@@ -62,6 +65,7 @@ public class InputHandler {
         this.gameState = gameState;
         this.viewport = viewport;
         this.boardLogic = boardLogic;
+        this.winCheck = new WinCheck(boardLogic);
     }
 
     /**
@@ -76,7 +80,7 @@ public class InputHandler {
         Vector3 touchPos = new Vector3(screenX, screenY, 0);
         viewport.unproject(touchPos);
 
-        // we need the map height to flip the y-axis (tiled uses top-down, libgdx uses bottom-up)
+        // read map dimensions — used for Y-axis flipping and coordinate conversion
         int mapHeightInTiles = map.getProperties().get("height", Integer.class);
         int tileHeightPx     = map.getProperties().get("tileheight", Integer.class);
         float worldMapHeight = mapHeightInTiles * tileHeightPx * unitScale;
@@ -106,7 +110,7 @@ public class InputHandler {
 
             // derive the cell key from the object's pixel position rather than a stored property
             int colGap = Math.round((tmo.getX() + 40) / 128f) - 6;
-            int row    = 16 - Math.round((tmo.getY() - 40) / 128f);
+            int row    = 17 - Math.round((tmo.getY() - 40) / 128f);
 
             // out-of-range coordinates mean the click hit a non-playable diamond
             if (colGap < 0 || colGap > 9 || row < 2 || row > 11) return MoveResult.NOT_A_CELL;
@@ -124,6 +128,13 @@ public class InputHandler {
             if (!gameState.isFirstMoveMade()) {
                 firstRhombusTMO = tmo;
                 gameState.setFirstMoveMade();
+            }
+
+            // check for win before toggling the turn
+            PlayerColour mover = gameState.getCurrentPlayer();
+            if (winCheck.checkWin(mover)) {
+                gameState.togglePlayer();
+                return MoveResult.WIN;
             }
 
             gameState.togglePlayer();
@@ -149,9 +160,28 @@ public class InputHandler {
             int targetGid = (gameState.getCurrentPlayer() == PlayerColour.BLACK) ? GID_BLACK_OCT : GID_WHITE_OCT;
             cell.setTile(map.getTileSets().getTile(targetGid));
 
+            // convert world position to TMX pixel space to derive the board label
+            // this uses the same coordinate system as the rhombus placement code above
+            // tiles are square so tileHeightPx works for both dimensions
+            int mapHeightPx = mapHeightInTiles * tileHeightPx;
+            float tmxPixelX = touchPos.x / unitScale;
+            float tmxPixelY = mapHeightPx - (touchPos.y / unitScale);
+            int boardCol = (int) (tmxPixelX / tileHeightPx) - 5;
+            int boardRow = 15 - (int) (tmxPixelY / tileHeightPx);
+
+            String cellLabel = QuaxBoard.generateLabel(boardCol, boardRow);
+            boardLogic.placeStone(cellLabel, gameState.getCurrentPlayer());
+
             if (!gameState.isFirstMoveMade()) {
                 firstOctagonCell = cell;
                 gameState.setFirstMoveMade();
+            }
+
+            // check for win before toggling the turn
+            PlayerColour mover = gameState.getCurrentPlayer();
+            if (winCheck.checkWin(mover)) {
+                gameState.togglePlayer();
+                return MoveResult.WIN;
             }
 
             gameState.togglePlayer();

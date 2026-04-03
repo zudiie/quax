@@ -57,7 +57,7 @@ public class QuaxBoard {
      * @param row one-based row number
      * @return the label string for that position
      */
-    private static String generateLabel(int col, int row) {
+    public static String generateLabel(int col, int row) {
         // shift 'A' by col to get the right letter
         char colChar = (char) ('A' + col);
         return "" + colChar + row;
@@ -143,6 +143,14 @@ public class QuaxBoard {
      */
     public int getBoardSize() {
         return BOARD_SIZE;
+    }
+
+    public Map<String, OctagonalCell> getOctagonCells() {
+        return octagonCells;
+    }
+
+    public Map<String, RhombicCell> getRhombusCells() {
+        return rhombusCells;
     }
 
     /**
