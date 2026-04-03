@@ -21,6 +21,7 @@ public class UIController {
     private final OrthographicCamera camera;
     private final WorldCalculator world;
     private final GameState gameState;
+    private InputHandler inputHandler;
 
     // false until the welcome screen is dismissed — hides in-game buttons
     private boolean inGame        = false;
@@ -75,6 +76,10 @@ public class UIController {
      */
     public void triggerQuitConfirm() {
         showQuitConfirm = true;
+    }
+
+    public void setInputHandler(InputHandler inputHandler) {
+        this.inputHandler = inputHandler;
     }
 
     /**
@@ -298,6 +303,9 @@ public class UIController {
 
         if (pieRuleButtonBounds != null && pieRuleButtonBounds.contains(touchPos.x, touchPos.y)) {
             gameState.activatePieRule();
+            if (inputHandler != null) {
+                inputHandler.swapFirstTileColour();
+            }
             return true;
         }
 

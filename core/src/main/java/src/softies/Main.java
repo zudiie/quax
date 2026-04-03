@@ -120,6 +120,7 @@ public class Main extends ApplicationAdapter {
         // UIController gets gameState so it can show/hide the pie rule button
         uiController  = new UIController(viewport, camera, world, gameState);
         inputHandler  = new InputHandler(map, octagonLayer, diamondLayer, unitScale, gameState, viewport, boardLogic);
+        uiController.setInputHandler(inputHandler);
         boardRenderer = new BoardRenderer(world, gameState, viewport);
 
         generateFont();
@@ -429,6 +430,12 @@ public class Main extends ApplicationAdapter {
             case NOT_A_CELL:
                 break;
             case SUCCESS:
+                break;
+            case WIN:
+                // the player who just moved won — current player has already been toggled
+                PlayerColour winner = (gameState.getCurrentPlayer() == PlayerColour.BLACK)
+                    ? PlayerColour.WHITE : PlayerColour.BLACK;
+                showStatusMessage(winner + " wins!", 10f);
                 break;
         }
     }
