@@ -4,7 +4,6 @@ import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.MapObject;
 import com.badlogic.gdx.maps.objects.TextureMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
-import com.badlogic.gdx.maps.tiled.TiledMapTile;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.viewport.Viewport;
@@ -12,8 +11,13 @@ import src.softies.PlayerColour;
 import src.softies.QuaxBoard;
 import src.softies.WinCheck;
 
-// translates raw screen clicks into board moves
-// checks both the octagon layer and the diamond (rhombus) object layer for hits
+// translates raw screen clicks into board moves and checks for a winner after each one
+// also tracks the hovered cell shape and exposes polygon vertices so Main can draw
+// a shape-accurate highlight instead of a bounding-box rect that bleeds into transparent PNG corners
+//
+// PIE RULE NOTE: this class does NOT visually swap the first tile when the pie rule is activated
+// the first tile was placed as BLACK; after the swap, Player 2 is BLACK and "owns" it —
+// so the tile correctly stays BLACK in both the model and the visual
 public class InputHandler {
 
     private final TiledMap map;
@@ -23,13 +27,11 @@ public class InputHandler {
     private final GameState gameState;
     private final Viewport viewport;
     private final QuaxBoard boardLogic;
+
+    // win detection — created once and reused every move
     private final WinCheck winCheck;
 
-    // references to the first placed tile so pie rule can swap its colour
-    private TiledMapTileLayer.Cell firstOctagonCell = null;
-    private TextureMapObject firstRhombusTMO = null;
-
-    // tile GIDs from the tileset — these correspond to specific tile images
+    // tile GIDs from the tileset — must match the tileset order in PolygonalGrid.tmx
     private static final int GID_EMPTY_RHO = 2;
     private static final int GID_WHITE_RHO = 3;
     private static final int GID_BLACK_RHO = 4;
@@ -37,103 +39,206 @@ public class InputHandler {
     private static final int GID_WHITE_OCT = 6;
     private static final int GID_BLACK_OCT = 7;
 
-    // the possible outcomes of a move attempt
+    // fraction of each tile dimension clipped at each corner to build the octagon polygon
+    // increase this value if the highlight outline doesn't match the tile art
+    private static final float OCT_CUT = 0.25f;
+
+    // hover state — updated every frame by updateHover(), read by Main to draw the overlay
+    public enum HoverShape { NONE, OCTAGON, RHOMBUS }
+    private HoverShape hoverShape    = HoverShape.NONE;
+    private float[]    hoverVertices = new float[0];
+
+    // possible outcomes of a move attempt
     public enum MoveResult {
-        SUCCESS,            // move went through and turn was toggled
-        WIN,                // move went through and the player has won
-        OCCUPIED,           // the clicked cell was already taken
-        NOT_A_CELL,         // the click didn't land on any valid cell
-        INVALID_PLACEMENT   // rhombus placement wasn't between two valid stones
+        SUCCESS,          // move placed, turn toggled
+        WIN,              // move placed and the moving player has won — game is now frozen
+        OCCUPIED,         // the clicked cell was already taken
+        NOT_A_CELL,       // the click didn't land on any valid cell
+        INVALID_PLACEMENT // rhombus placement wasn't valid
     }
 
     /**
-     * creates the input handler with references to the map layers, game state and board logic
-     * @param map the loaded TiledMap (used to look up tiles and properties)
-     * @param octagonLayer the tile layer where octagonal cells live
-     * @param diamondLayer the object layer where rhombus TextureMapObjects are stored
-     * @param unitScale the same scale factor used everywhere else (0.25f)
-     * @param gameState tracks whose turn it is and lets us toggle after a valid move
-     * @param viewport used to convert screen coords to world coords
-     * @param boardLogic the board model that actually records placement state
+     * @param map          the loaded TiledMap
+     * @param octagonLayer tile layer where octagonal cells live
+     * @param diamondLayer object layer where rhombus TextureMapObjects are stored
+     * @param unitScale    scale factor applied to all pixel measurements (0.25f)
+     * @param gameState    tracks and toggles the current player, stores the winner
+     * @param viewport     converts screen coords to world coords
+     * @param boardLogic   the board model that records placement state
      */
     public InputHandler(TiledMap map, TiledMapTileLayer octagonLayer, MapLayer diamondLayer,
                         float unitScale, GameState gameState, Viewport viewport, QuaxBoard boardLogic) {
-        this.map = map;
+        this.map          = map;
         this.octagonLayer = octagonLayer;
         this.diamondLayer = diamondLayer;
-        this.unitScale = unitScale;
-        this.gameState = gameState;
-        this.viewport = viewport;
-        this.boardLogic = boardLogic;
-        this.winCheck = new WinCheck(boardLogic);
+        this.unitScale    = unitScale;
+        this.gameState    = gameState;
+        this.viewport     = viewport;
+        this.boardLogic   = boardLogic;
+        this.winCheck     = new WinCheck(boardLogic);
+    }
+
+    // -------------------------------------------------------------------------
+    // HOVER DETECTION
+    // -------------------------------------------------------------------------
+
+    /**
+     * determines which cell (if any) is under the mouse and builds its polygon vertex array
+     * call every frame so the hover highlight stays current
+     * @param screenX raw screen x from Gdx.input.getX()
+     * @param screenY raw screen y from Gdx.input.getY()
+     */
+    public void updateHover(int screenX, int screenY) {
+        hoverShape    = HoverShape.NONE;
+        hoverVertices = new float[0];
+
+        Vector3 pos = new Vector3(screenX, screenY, 0);
+        viewport.unproject(pos);
+
+        int mapH   = map.getProperties().get("height",     Integer.class);
+        int tileHpx = map.getProperties().get("tileheight", Integer.class);
+        float mapHeightWorld = mapH * tileHpx * unitScale;
+
+        float dOffX = diamondLayer.getOffsetX() * unitScale;
+        float dOffY = diamondLayer.getOffsetY() * unitScale;
+
+        // check rhombus diamonds first
+        for (MapObject obj : diamondLayer.getObjects()) {
+            if (!(obj instanceof TextureMapObject)) continue;
+            TextureMapObject tmo = (TextureMapObject) obj;
+            float w  = tmo.getProperties().get("width",  Float.class) * unitScale;
+            float h  = tmo.getProperties().get("height", Float.class) * unitScale;
+            float wx = tmo.getX() * unitScale + dOffX;
+            float wy = mapHeightWorld - (tmo.getY() * unitScale) - dOffY + 2 * h + 4f;
+
+            if (pos.x >= wx && pos.x <= wx + w && pos.y >= wy && pos.y <= wy + h) {
+                hoverShape    = HoverShape.RHOMBUS;
+                hoverVertices = buildDiamondVertices(wx, wy, w, h);
+                return;
+            }
+        }
+
+        // fall through to octagon tiles
+        int cellX = (int)(pos.x / (octagonLayer.getTileWidth()  * unitScale));
+        int cellY = (int)(pos.y / (octagonLayer.getTileHeight() * unitScale));
+
+        TiledMapTileLayer.Cell cell = octagonLayer.getCell(cellX, cellY);
+        if (cell != null && cell.getTile() != null) {
+            int gid = cell.getTile().getId();
+            // only highlight tiles that are part of the playable board (not blank surrounds)
+            if (gid == GID_EMPTY_OCT || gid == GID_BLACK_OCT || gid == GID_WHITE_OCT) {
+                float wx = cellX * octagonLayer.getTileWidth()  * unitScale;
+                float wy = cellY * octagonLayer.getTileHeight() * unitScale;
+                float w  = octagonLayer.getTileWidth()  * unitScale;
+                float h  = octagonLayer.getTileHeight() * unitScale;
+                hoverShape    = HoverShape.OCTAGON;
+                hoverVertices = buildOctagonVertices(wx, wy, w, h);
+            }
+        }
     }
 
     /**
-     * figures out what (if anything) the player clicked on and applies the move
-     * checks the diamond layer first, then falls through to octagon tile detection
+     * builds the 8-point octagon polygon by clipping OCT_CUT fraction from each corner
+     * @return flat [x0,y0, x1,y1, ...] array for ShapeRenderer.polygon()
+     */
+    private float[] buildOctagonVertices(float x, float y, float w, float h) {
+        float cx = w * OCT_CUT;
+        float cy = h * OCT_CUT;
+        return new float[]{
+            x + cx,     y,
+            x + w - cx, y,
+            x + w,      y + cy,
+            x + w,      y + h - cy,
+            x + w - cx, y + h,
+            x + cx,     y + h,
+            x,          y + h - cy,
+            x,          y + cy
+        };
+    }
+
+    /**
+     * builds the 4-point diamond polygon from the midpoints of the bounding box edges
+     * @return flat [x0,y0, x1,y1, ...] array for ShapeRenderer.polygon()
+     */
+    private float[] buildDiamondVertices(float x, float y, float w, float h) {
+        return new float[]{
+            x + w / 2, y,
+            x + w,     y + h / 2,
+            x + w / 2, y + h,
+            x,         y + h / 2
+        };
+    }
+
+    /** @return the shape type currently under the mouse */
+    public HoverShape getHoverShape()    { return hoverShape; }
+
+    /** @return polygon vertices for the hovered cell, ready for ShapeRenderer.polygon() */
+    public float[]    getHoverVertices() { return hoverVertices; }
+
+    // -------------------------------------------------------------------------
+    // CLICK / MOVE HANDLING
+    // -------------------------------------------------------------------------
+
+    /**
+     * processes a screen click, applies the move, and checks for a win
+     * returns OCCUPIED or NOT_A_CELL if nothing was placed
+     * returns WIN if the move completed a winning path (game is frozen by GameState)
+     * returns SUCCESS otherwise
      * @param screenX raw screen x from Gdx.input.getX()
      * @param screenY raw screen y from Gdx.input.getY()
      * @return a MoveResult indicating what happened
      */
     public MoveResult handleBoardClick(int screenX, int screenY) {
-        // convert screen pixel coords to world coords for hit testing
-        Vector3 touchPos = new Vector3(screenX, screenY, 0);
-        viewport.unproject(touchPos);
+        // don't accept any moves after the game is over
+        if (gameState.isGameOver()) return MoveResult.NOT_A_CELL;
 
-        // read map dimensions — used for Y-axis flipping and coordinate conversion
-        int mapHeightInTiles = map.getProperties().get("height", Integer.class);
-        int tileHeightPx     = map.getProperties().get("tileheight", Integer.class);
-        float worldMapHeight = mapHeightInTiles * tileHeightPx * unitScale;
+        Vector3 pos = new Vector3(screenX, screenY, 0);
+        viewport.unproject(pos);
 
-        // grab the diamond layer's own offset in case it's shifted relative to the octagon layer
-        float dOffsetX = diamondLayer.getOffsetX() * unitScale;
-        float dOffsetY = diamondLayer.getOffsetY() * unitScale;
+        int mapH    = map.getProperties().get("height",     Integer.class);
+        int tileHpx = map.getProperties().get("tileheight", Integer.class);
+        float mapHeightWorld = mapH * tileHpx * unitScale;
 
-        // --- diamond (rhombus) hit detection ---
-        for (MapObject object : diamondLayer.getObjects()) {
-            if (!(object instanceof TextureMapObject)) continue;
-            TextureMapObject tmo = (TextureMapObject) object;
+        float dOffX = diamondLayer.getOffsetX() * unitScale;
+        float dOffY = diamondLayer.getOffsetY() * unitScale;
 
-            // scale the object's pixel dimensions and position into world space
+        // --- rhombus / diamond hit detection ---
+        for (MapObject obj : diamondLayer.getObjects()) {
+            if (!(obj instanceof TextureMapObject)) continue;
+            TextureMapObject tmo = (TextureMapObject) obj;
+
             float objW   = tmo.getProperties().get("width",  Float.class) * unitScale;
             float objH   = tmo.getProperties().get("height", Float.class) * unitScale;
-            float worldX = tmo.getX() * unitScale + dOffsetX;
-            // the +2*objH+4f corrects for the y-flip and a small visual offset
-            float worldY = worldMapHeight - (tmo.getY() * unitScale) - dOffsetY + 2 * objH + 4f;
+            float worldX = tmo.getX() * unitScale + dOffX;
+            // the +2*objH+4f corrects for the y-flip and a small visual alignment offset
+            float worldY = mapHeightWorld - (tmo.getY() * unitScale) - dOffY + 2 * objH + 4f;
 
-            // skip this object if the click landed outside its bounding box
-            if (touchPos.x < worldX || touchPos.x > worldX + objW ||
-                touchPos.y < worldY || touchPos.y > worldY + objH) continue;
+            if (pos.x < worldX || pos.x > worldX + objW ||
+                pos.y < worldY || pos.y > worldY + objH) continue;
 
-            // already claimed — don't let them place again
             if (tmo.getProperties().containsKey("occupied")) return MoveResult.OCCUPIED;
 
-            // derive the cell key from the object's pixel position rather than a stored property
+            // derive the cell key from the object's pixel position
             int colGap = Math.round((tmo.getX() + 40) / 128f) - 6;
             int row    = 17 - Math.round((tmo.getY() - 40) / 128f);
-
-            // out-of-range coordinates mean the click hit a non-playable diamond
             if (colGap < 0 || colGap > 9 || row < 2 || row > 11) return MoveResult.NOT_A_CELL;
-            String cellId = "R-" + (char) ('A' + colGap) + row;
 
-            // try to record the placement in the board model
+            String cellId = "R-" + (char)('A' + colGap) + row;
             if (!boardLogic.placeRhombus(cellId, gameState.getCurrentPlayer()))
                 return MoveResult.OCCUPIED;
 
-            // update the tile graphic to show the current player's colour
+            // update the tile graphic to reflect the current player's colour
             int gid = (gameState.getCurrentPlayer() == PlayerColour.BLACK) ? GID_BLACK_RHO : GID_WHITE_RHO;
             tmo.setTextureRegion(map.getTileSets().getTile(gid).getTextureRegion());
             tmo.getProperties().put("occupied", true);
 
-            if (!gameState.isFirstMoveMade()) {
-                firstRhombusTMO = tmo;
-                gameState.setFirstMoveMade();
-            }
+            // record that the first move has been made so the pie rule window opens
+            if (!gameState.isFirstMoveMade()) gameState.setFirstMoveMade();
 
-            // check for win before toggling the turn
+            // check for a win BEFORE toggling the turn
             PlayerColour mover = gameState.getCurrentPlayer();
             if (winCheck.checkWin(mover)) {
-                gameState.togglePlayer();
+                gameState.setWinner(mover); // freeze the game
                 return MoveResult.WIN;
             }
 
@@ -142,45 +247,41 @@ public class InputHandler {
         }
 
         // --- octagon tile hit detection ---
-        // convert world position to tile grid coordinates
-        int cellX = (int) (touchPos.x / (octagonLayer.getTileWidth()  * unitScale));
-        int cellY = (int) (touchPos.y / (octagonLayer.getTileHeight() * unitScale));
+        int cellX = (int)(pos.x / (octagonLayer.getTileWidth()  * unitScale));
+        int cellY = (int)(pos.y / (octagonLayer.getTileHeight() * unitScale));
 
         TiledMapTileLayer.Cell cell = octagonLayer.getCell(cellX, cellY);
         if (cell != null && cell.getTile() != null) {
             int currentGid = cell.getTile().getId();
 
-            // if any coloured tile is already here, the cell is taken
+            // reject if this tile already has a stone or rhombus on it
             if (currentGid == GID_BLACK_OCT || currentGid == GID_WHITE_OCT ||
                 currentGid == GID_BLACK_RHO || currentGid == GID_WHITE_RHO) {
                 return MoveResult.OCCUPIED;
             }
 
-            // swap the tile to the current player's coloured version and pass the turn
+            // update the visual tile
             int targetGid = (gameState.getCurrentPlayer() == PlayerColour.BLACK) ? GID_BLACK_OCT : GID_WHITE_OCT;
             cell.setTile(map.getTileSets().getTile(targetGid));
 
-            // convert world position to TMX pixel space to derive the board label
-            // this uses the same coordinate system as the rhombus placement code above
-            // tiles are square so tileHeightPx works for both dimensions
-            int mapHeightPx = mapHeightInTiles * tileHeightPx;
-            float tmxPixelX = touchPos.x / unitScale;
-            float tmxPixelY = mapHeightPx - (touchPos.y / unitScale);
-            int boardCol = (int) (tmxPixelX / tileHeightPx) - 5;
-            int boardRow = 15 - (int) (tmxPixelY / tileHeightPx);
+            // derive the board label from pixel coordinates
+            // the board starts at tile column 5 and row 4 within the full TMX map
+            int mapHeightPx = mapH * tileHpx;
+            float tmxPixelX = pos.x / unitScale;
+            float tmxPixelY = mapHeightPx - (pos.y / unitScale);
+            int boardCol = (int)(tmxPixelX / tileHpx) - 5;
+            int boardRow = 15 - (int)(tmxPixelY / tileHpx);
 
             String cellLabel = QuaxBoard.generateLabel(boardCol, boardRow);
+            // update the board model so WinCheck can find this stone
             boardLogic.placeStone(cellLabel, gameState.getCurrentPlayer());
 
-            if (!gameState.isFirstMoveMade()) {
-                firstOctagonCell = cell;
-                gameState.setFirstMoveMade();
-            }
+            if (!gameState.isFirstMoveMade()) gameState.setFirstMoveMade();
 
-            // check for win before toggling the turn
+            // check for a win BEFORE toggling the turn
             PlayerColour mover = gameState.getCurrentPlayer();
             if (winCheck.checkWin(mover)) {
-                gameState.togglePlayer();
+                gameState.setWinner(mover); // freeze the game
                 return MoveResult.WIN;
             }
 
@@ -188,23 +289,6 @@ public class InputHandler {
             return MoveResult.SUCCESS;
         }
 
-        // nothing was hit
         return MoveResult.NOT_A_CELL;
-    }
-
-    /**
-     * swaps the colour of the first placed tile — called when the pie rule is activated
-     * so the tile visually reflects the new owner
-     */
-    public void swapFirstTileColour() {
-        if (firstOctagonCell != null) {
-            int currentGid = firstOctagonCell.getTile().getId();
-            int newGid = (currentGid == GID_BLACK_OCT) ? GID_WHITE_OCT : GID_BLACK_OCT;
-            firstOctagonCell.setTile(map.getTileSets().getTile(newGid));
-        }
-        if (firstRhombusTMO != null) {
-            int newGid = GID_WHITE_RHO;
-            firstRhombusTMO.setTextureRegion(map.getTileSets().getTile(newGid).getTextureRegion());
-        }
     }
 }
