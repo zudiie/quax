@@ -12,47 +12,37 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
-// the in-game quit button (bottom-right) and the shared confirmation dialog
-// the dialog is also used by the welcome screen quit button via triggerConfirm()
-// No (cancel) is always on the LEFT — dark red
-// Yes (confirm quit) is always on the RIGHT — dark green
+// the in-game quit button (bottom-right corner) and the shared confirmation dialog
+// the dialog can also be opened from the welcome screen via triggerConfirm()
+// No (cancel) is on the LEFT in dark red; Yes (quit) is on the RIGHT in dark green
 public class QuitWidget {
 
     private final WorldCalculator world;
     private final Viewport viewport;
     private final OrthographicCamera camera;
 
-    // when false the bottom-right quit button is hidden (welcome screen)
-    private boolean visible = false;
+    // the quit button is hidden until the game starts
+    private boolean visible     = false;
     private boolean showConfirm = false;
 
     private Rectangle quitBounds;
     private Rectangle noBounds;   // LEFT — cancel
     private Rectangle yesBounds;  // RIGHT — confirm quit
 
-    private final float offsetZ = 300f;
+    private static final float OFFSET_Z = 300f;
 
-    // quit button: blue fill, gold border
-    private static final Color BTN_IDLE    = new Color(0.14f, 0.24f, 0.62f, 1f);
-    private static final Color BTN_HOVER   = new Color(0.22f, 0.36f, 0.80f, 1f);
-    private static final Color GOLD        = new Color(0.82f, 0.67f, 0.12f, 1f);
+    // button colours
+    private static final Color BTN_IDLE  = new Color(0.14f, 0.24f, 0.62f, 1f);
+    private static final Color BTN_HOVER = new Color(0.22f, 0.36f, 0.80f, 1f);
+    private static final Color GOLD      = new Color(0.82f, 0.67f, 0.12f, 1f);
 
-    // dialog
-    private static final Color DIALOG_BG   = new Color(0.10f, 0.18f, 0.52f, 0.97f);
+    // dialog colours
+    private static final Color DIALOG_BG = new Color(0.10f, 0.18f, 0.52f, 0.97f);
+    private static final Color NO_IDLE   = new Color(0.38f, 0.07f, 0.07f, 1f);
+    private static final Color NO_HOVER  = new Color(0.58f, 0.13f, 0.13f, 1f);
+    private static final Color YES_IDLE  = new Color(0.07f, 0.30f, 0.07f, 1f);
+    private static final Color YES_HOVER = new Color(0.13f, 0.48f, 0.13f, 1f);
 
-    // No button — dark red
-    private static final Color NO_IDLE     = new Color(0.38f, 0.07f, 0.07f, 1f);
-    private static final Color NO_HOVER    = new Color(0.58f, 0.13f, 0.13f, 1f);
-
-    // Yes button — dark green
-    private static final Color YES_IDLE    = new Color(0.07f, 0.30f, 0.07f, 1f);
-    private static final Color YES_HOVER   = new Color(0.13f, 0.48f, 0.13f, 1f);
-
-    /**
-     * @param world    for dialog centring coordinates
-     * @param viewport for world-size queries and mouse unprojecting
-     * @param camera   for the ShapeRenderer projection matrix
-     */
     public QuitWidget(WorldCalculator world, Viewport viewport, OrthographicCamera camera) {
         this.world    = world;
         this.viewport = viewport;
@@ -62,11 +52,12 @@ public class QuitWidget {
     /** call with true once the game starts so the bottom-right quit button appears */
     public void setVisible(boolean visible) { this.visible = visible; }
 
-    /** opens the confirmation dialog from outside (e.g. welcome screen quit button) */
+    /** opens the confirmation dialog from outside (e.g. the welcome screen quit button) */
     public void triggerConfirm() { showConfirm = true; }
 
     /**
-     * recomputes button rectangles — call every frame before draw() and handleInput()
+     * recomputes all button rectangles from the current camera position
+     * call every frame before draw() and handleInput()
      */
     public void updateBounds() {
         float worldRight  = camera.position.x + viewport.getWorldWidth()  / 2;
@@ -77,11 +68,9 @@ public class QuitWidget {
             : null;
 
         if (showConfirm) {
-            // dialog: 400 wide, 200 tall, centred in the right panel
             float dW = 400, dH = 200;
-            float dX = world.boardCenterX + (offsetZ - dW) / 2f;
+            float dX = world.boardCenterX + (OFFSET_Z - dW) / 2f;
             float dY = world.boardCenterY - dH / 2f;
-            // buttons: 150 wide, 52 tall with padding from the dialog edges
             float bW = 150, bH = 52, bY = dY + 36, pad = 24;
             noBounds  = new Rectangle(dX + pad,           bY, bW, bH);
             yesBounds = new Rectangle(dX + dW - bW - pad, bY, bW, bH);
@@ -91,114 +80,114 @@ public class QuitWidget {
     }
 
     /**
-     * draws the quit button and, when open, the full confirmation dialog overlay
-     * @param shapeRenderer for backgrounds / borders
-     * @param batch         for text (not active when called — managed internally)
-     * @param font          font for all button and dialog text
+     * draws the quit button and the confirmation dialog (if open)
+     * manages batch begin/end internally — do not call with an active batch
      */
-    public void draw(ShapeRenderer shapeRenderer, SpriteBatch batch, BitmapFont font) {
+    public void draw(ShapeRenderer sr, SpriteBatch batch, BitmapFont font) {
+        Vector3 mouse = getMouseWorldPos();
+
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        sr.setProjectionMatrix(camera.combined);
 
-        shapeRenderer.setProjectionMatrix(camera.combined);
-
-        Vector3 mouse = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-        viewport.unproject(mouse);
-
-        // --- quit button ---
-        if (quitBounds != null) {
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-            shapeRenderer.setColor(quitBounds.contains(mouse.x, mouse.y) ? BTN_HOVER : BTN_IDLE);
-            shapeRenderer.rect(quitBounds.x, quitBounds.y, quitBounds.width, quitBounds.height);
-            shapeRenderer.end();
-
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-            shapeRenderer.setColor(GOLD);
-            shapeRenderer.rect(quitBounds.x, quitBounds.y, quitBounds.width, quitBounds.height);
-            shapeRenderer.end();
-        }
-
-        // --- confirmation dialog ---
-        if (showConfirm) {
-            float dW = 400, dH = 200;
-            float dX = world.boardCenterX + (offsetZ - dW) / 2f;
-            float dY = world.boardCenterY - dH / 2f;
-            float bW = 150, bH = 52, bY = dY + 36, pad = 24;
-            float noX  = dX + pad;
-            float yesX = dX + dW - bW - pad;
-
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-
-            // dim overlay behind dialog
-            float wl = camera.position.x - viewport.getWorldWidth()  / 2;
-            float wb = camera.position.y - viewport.getWorldHeight() / 2;
-            shapeRenderer.setColor(0f, 0f, 0f, 0.70f);
-            shapeRenderer.rect(wl, wb, viewport.getWorldWidth(), viewport.getWorldHeight());
-
-            // dialog background
-            shapeRenderer.setColor(DIALOG_BG);
-            shapeRenderer.rect(dX, dY, dW, dH);
-
-            // No button (left) — dark red
-            boolean noH = noBounds != null && noBounds.contains(mouse.x, mouse.y);
-            shapeRenderer.setColor(noH ? NO_HOVER : NO_IDLE);
-            shapeRenderer.rect(noX, bY, bW, bH);
-
-            // Yes button (right) — dark green
-            boolean yH = yesBounds != null && yesBounds.contains(mouse.x, mouse.y);
-            shapeRenderer.setColor(yH ? YES_HOVER : YES_IDLE);
-            shapeRenderer.rect(yesX, bY, bW, bH);
-            shapeRenderer.end();
-
-            // borders: gold on dialog, white on buttons
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-            shapeRenderer.setColor(GOLD);
-            shapeRenderer.rect(dX, dY, dW, dH);
-            shapeRenderer.setColor(1f, 1f, 1f, 0.50f);
-            shapeRenderer.rect(noX,  bY, bW, bH);
-            shapeRenderer.rect(yesX, bY, bW, bH);
-            shapeRenderer.end();
-        }
+        drawQuitButton(sr, mouse);
+        if (showConfirm) drawDialog(sr, mouse);
 
         Gdx.gl.glDisable(GL20.GL_BLEND);
 
-        // --- text ---
         batch.begin();
-
-        if (quitBounds != null) {
-            font.setColor(Color.WHITE);
-            drawCentred(batch, font, "Quit", quitBounds);
-        }
-
-        if (showConfirm) {
-            float dW = 400, dH = 200;
-            float dX = world.boardCenterX + (offsetZ - dW) / 2f;
-            float dY = world.boardCenterY - dH / 2f;
-            float bW = 150, bH = 52, bY = dY + 36, pad = 24;
-            float noX  = dX + pad;
-            float yesX = dX + dW - bW - pad;
-
-            // dialog title — centred
-            font.setColor(Color.WHITE);
-            String title = "Quit the game?";
-            GlyphLayout tl = new GlyphLayout(font, title);
-            font.draw(batch, title, dX + (dW - tl.width) / 2f, dY + dH - 30f);
-
-            // button labels — centred in their respective buttons
-            font.setColor(Color.WHITE);
-            drawCentredXY(batch, font, "Keep Playing", noX,  bY, bW, bH);
-            drawCentredXY(batch, font, "Yes, Quit",    yesX, bY, bW, bH);
-        }
-
+        drawQuitButtonLabel(batch, font);
+        if (showConfirm) drawDialogLabels(batch, font);
         font.setColor(Color.WHITE);
         batch.end();
     }
 
     /**
+     * draws the quit button background and gold border
+     */
+    private void drawQuitButton(ShapeRenderer sr, Vector3 mouse) {
+        if (quitBounds == null) return;
+
+        sr.begin(ShapeRenderer.ShapeType.Filled);
+        sr.setColor(quitBounds.contains(mouse.x, mouse.y) ? BTN_HOVER : BTN_IDLE);
+        sr.rect(quitBounds.x, quitBounds.y, quitBounds.width, quitBounds.height);
+        sr.end();
+
+        sr.begin(ShapeRenderer.ShapeType.Line);
+        sr.setColor(GOLD);
+        sr.rect(quitBounds.x, quitBounds.y, quitBounds.width, quitBounds.height);
+        sr.end();
+    }
+
+    /**
+     * draws the full dialog: dim overlay, dark-blue background, red No button, green Yes button
+     */
+    private void drawDialog(ShapeRenderer sr, Vector3 mouse) {
+        float dW = 400, dH = 200;
+        float dX = world.boardCenterX + (OFFSET_Z - dW) / 2f;
+        float dY = world.boardCenterY - dH / 2f;
+        float bW = 150, bH = 52, bY = dY + 36, pad = 24;
+        float noX  = dX + pad;
+        float yesX = dX + dW - bW - pad;
+
+        sr.begin(ShapeRenderer.ShapeType.Filled);
+
+        // semi-transparent dim layer behind the dialog
+        float wl = camera.position.x - viewport.getWorldWidth()  / 2;
+        float wb = camera.position.y - viewport.getWorldHeight() / 2;
+        sr.setColor(0f, 0f, 0f, 0.70f);
+        sr.rect(wl, wb, viewport.getWorldWidth(), viewport.getWorldHeight());
+
+        sr.setColor(DIALOG_BG);
+        sr.rect(dX, dY, dW, dH);
+
+        // No — dark red, left
+        sr.setColor(noBounds != null && noBounds.contains(mouse.x, mouse.y) ? NO_HOVER : NO_IDLE);
+        sr.rect(noX, bY, bW, bH);
+
+        // Yes — dark green, right
+        sr.setColor(yesBounds != null && yesBounds.contains(mouse.x, mouse.y) ? YES_HOVER : YES_IDLE);
+        sr.rect(yesX, bY, bW, bH);
+        sr.end();
+
+        // gold border on the dialog, white borders on the buttons
+        sr.begin(ShapeRenderer.ShapeType.Line);
+        sr.setColor(GOLD);
+        sr.rect(dX, dY, dW, dH);
+        sr.setColor(1f, 1f, 1f, 0.50f);
+        sr.rect(noX,  bY, bW, bH);
+        sr.rect(yesX, bY, bW, bH);
+        sr.end();
+    }
+
+    /** draws the "Quit" label centred in the quit button */
+    private void drawQuitButtonLabel(SpriteBatch batch, BitmapFont font) {
+        if (quitBounds == null) return;
+        font.setColor(Color.WHITE);
+        drawCentred(batch, font, "Quit", quitBounds);
+    }
+
+    /** draws the dialog title and centred button labels */
+    private void drawDialogLabels(SpriteBatch batch, BitmapFont font) {
+        float dW = 400, dH = 200;
+        float dX = world.boardCenterX + (OFFSET_Z - dW) / 2f;
+        float dY = world.boardCenterY - dH / 2f;
+        float bW = 150, bH = 52, bY = dY + 36, pad = 24;
+
+        font.setColor(Color.WHITE);
+
+        // centred dialog title
+        String title = "Quit the game?";
+        GlyphLayout tl = new GlyphLayout(font, title);
+        font.draw(batch, title, dX + (dW - tl.width) / 2f, dY + dH - 30f);
+
+        drawCentredXY(batch, font, "Keep Playing", dX + pad,           bY, bW, bH);
+        drawCentredXY(batch, font, "Yes, Quit",    dX + dW - bW - pad, bY, bW, bH);
+    }
+
+    /**
      * processes a click — returns true if this widget consumed it
-     * the dialog eats ALL clicks while open
-     * @param touchPos world-space click position
-     * @return true if consumed
+     * the confirmation dialog eats ALL clicks while open
      */
     public boolean handleInput(Vector3 touchPos) {
         if (showConfirm) {
@@ -210,7 +199,7 @@ public class QuitWidget {
                 showConfirm = false;
                 return true;
             }
-            return true; // swallow all clicks while dialog is open
+            return true; // swallow everything while the dialog is open
         }
         if (quitBounds != null && quitBounds.contains(touchPos.x, touchPos.y)) {
             showConfirm = true;
@@ -219,9 +208,16 @@ public class QuitWidget {
         return false;
     }
 
-    // helper: centre text inside a Rectangle
-    private void drawCentred(SpriteBatch batch, BitmapFont font, String text, Rectangle rect) {
-        drawCentredXY(batch, font, text, rect.x, rect.y, rect.width, rect.height);
+    // --- helpers ---
+
+    private Vector3 getMouseWorldPos() {
+        Vector3 mouse = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+        viewport.unproject(mouse);
+        return mouse;
+    }
+
+    private void drawCentred(SpriteBatch batch, BitmapFont font, String text, Rectangle r) {
+        drawCentredXY(batch, font, text, r.x, r.y, r.width, r.height);
     }
 
     private void drawCentredXY(SpriteBatch batch, BitmapFont font, String text,
