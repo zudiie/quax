@@ -1,6 +1,7 @@
 package src.softies.board;
 
 import src.softies.PlayerColour;
+import src.softies.GameMode;
 
 // holds the live state of the game — right now that's just whose turn it is
 // anything that needs to be shared across renderers, input handlers, etc. lives here
@@ -9,7 +10,7 @@ public class GameState {
     private PlayerColour currentPlayer;
     private boolean firstMoveMade;
     private boolean pieRuleUsed;
-
+    private GameMode gameMode;
     /**
      * initialises the game state with BLACK going first, as per the rules
      */
@@ -18,6 +19,7 @@ public class GameState {
         currentPlayer = PlayerColour.BLACK;
         firstMoveMade = false;
         pieRuleUsed = false;
+        gameMode = GameMode.HUMAN_VS_HUMAN;
     }
 
 
@@ -42,6 +44,15 @@ public class GameState {
 
     public void setPieRuleUsed() {
         this.pieRuleUsed = true;
+    }
+
+
+    public GameMode getGameMode() {
+        return gameMode;
+    }
+
+    public void setGameMode(GameMode gameMode) {
+        this.gameMode = gameMode;
     }
 
     /**

@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import src.softies.GameMode;
 
 // handles all the text-based drawing on the game board — row numbers, column letters,
 // the current turn indicator, status messages and the objectives panel on the right
@@ -69,7 +70,9 @@ public class BoardRenderer {
         }
 
         // game title centred above the board
-        String title = "Quax: Human vs Human"; // could be made dynamic if bot mode is added later
+        String title = (gameState.getGameMode() == GameMode.HUMAN_VS_BOT)
+            ? "Quax: Human vs Bot"
+            : "Quax: Human vs Human";
         GlyphLayout titleLayout = new GlyphLayout(font, title);
         float titleX = world.boardCenterX - titleLayout.width / 2;
         float titleY = world.boardMaxY + 130f;

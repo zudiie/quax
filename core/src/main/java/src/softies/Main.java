@@ -24,6 +24,7 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 import src.softies.board.*;
+import src.softies.GameMode;
 
 // the entry point for the libgdx application — owns the render loop and ties all subsystems together
 // responsible for loading the map, setting up the camera, and delegating input/rendering to helpers
@@ -67,10 +68,16 @@ public class Main extends ApplicationAdapter {
     // whether to show the welcome screen instead of the actual game
     private boolean showWelcome = true;
     private Rectangle startButtonBounds;
+    private Rectangle humanVsHumanButtonBounds;
+    private Rectangle humanVsBotButtonBounds;
 
     // temporary status message shown after invalid moves, and a countdown timer
     private String statusMessage = "";
     private float statusMessageUntil = 0f;
+
+    // current bot strategy label shown in Human vs Bot mode
+    private final String botStrategy = "Random";
+    private boolean modeSelected = false;
 
     /**
      * called once by libgdx when the application starts
@@ -227,6 +234,16 @@ public class Main extends ApplicationAdapter {
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
         boardRenderer.render(batch, font, statusMessage);
+
+        // show the bot strategy only in Human vs Bot mode
+        if (gameState.getGameMode() == GameMode.HUMAN_VS_BOT) {
+            String strategyText = "Bot Strategy: " + botStrategy;
+            GlyphLayout strategyLayout = new GlyphLayout(font, strategyText);
+            float strategyX = world.boardMaxX + 40f;
+            float strategyY = world.boardCenterY + 120f;
+            font.draw(batch, strategyText, strategyX, strategyY);
+        }
+
         batch.end();
 
         // draw the quit button and any dialog on top of everything else
@@ -278,10 +295,35 @@ public class Main extends ApplicationAdapter {
         shapeRenderer.setProjectionMatrix(camera.combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
+        Vector3 mousePos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+        viewport.unproject(mousePos);
+
+        if (humanVsHumanButtonBounds != null) {
+            boolean hover = humanVsHumanButtonBounds.contains(mousePos.x, mousePos.y);
+            boolean selected = modeSelected && gameState.getGameMode() == GameMode.HUMAN_VS_HUMAN;
+            if (selected) {
+                shapeRenderer.setColor(0.15f, 0.35f, 0.15f, 0.95f);
+            } else {
+                shapeRenderer.setColor(hover ? 0.3f : 0.2f, 0.2f, 0.2f, 0.9f);
+            }
+            shapeRenderer.rect(humanVsHumanButtonBounds.x, humanVsHumanButtonBounds.y,
+                humanVsHumanButtonBounds.width, humanVsHumanButtonBounds.height);
+        }
+
+        if (humanVsBotButtonBounds != null) {
+            boolean hover = humanVsBotButtonBounds.contains(mousePos.x, mousePos.y);
+            boolean selected = modeSelected && gameState.getGameMode() == GameMode.HUMAN_VS_BOT;
+            if (selected) {
+                shapeRenderer.setColor(0.15f, 0.35f, 0.15f, 0.95f);
+            } else {
+                shapeRenderer.setColor(hover ? 0.3f : 0.2f, 0.2f, 0.2f, 0.9f);
+            }
+            shapeRenderer.rect(humanVsBotButtonBounds.x, humanVsBotButtonBounds.y,
+                humanVsBotButtonBounds.width, humanVsBotButtonBounds.height);
+        }
+
+
         if (startButtonBounds != null) {
-            // lighten the button slightly when the mouse is over it
-            Vector3 mousePos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-            viewport.unproject(mousePos);
             boolean hover = startButtonBounds.contains(mousePos.x, mousePos.y);
             shapeRenderer.setColor(hover ? 0.3f : 0.2f, 0.2f, 0.2f, 0.9f);
             shapeRenderer.rect(startButtonBounds.x, startButtonBounds.y,
@@ -289,9 +331,20 @@ public class Main extends ApplicationAdapter {
         }
         shapeRenderer.end();
 
-        // white border around the button
+        // white borders around the buttons
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         shapeRenderer.setColor(1, 1, 1, 1);
+
+        if (humanVsHumanButtonBounds != null) {
+            shapeRenderer.rect(humanVsHumanButtonBounds.x, humanVsHumanButtonBounds.y,
+                humanVsHumanButtonBounds.width, humanVsHumanButtonBounds.height);
+        }
+
+        if (humanVsBotButtonBounds != null) {
+            shapeRenderer.rect(humanVsBotButtonBounds.x, humanVsBotButtonBounds.y,
+                humanVsBotButtonBounds.width, humanVsBotButtonBounds.height);
+        }
+
         if (startButtonBounds != null) {
             shapeRenderer.rect(startButtonBounds.x, startButtonBounds.y,
                 startButtonBounds.width, startButtonBounds.height);
@@ -306,20 +359,43 @@ public class Main extends ApplicationAdapter {
         String welcomeTitle = "QUAX";
         GlyphLayout wlTitle = new GlyphLayout(welcomeFont, welcomeTitle);
         float titleX = world.boardCenterX + (offsetZ - wlTitle.width) / 2f;
-        float titleY = world.boardCenterY + 120f;
+        float titleY = world.boardCenterY + 200f;
         welcomeFont.draw(batch, welcomeTitle, titleX, titleY);
 
         // subtitle sits just below the title
-        String subTitle = "Human vs Human";
+        String subTitle = "Select Game Mode";
         GlyphLayout wlSub = new GlyphLayout(welcomeFont, subTitle);
         float subX = world.boardCenterX + (offsetZ - wlSub.width) / 2f;
-        float subY = world.boardCenterY + 80f;
+        float subY = world.boardCenterY + 150f;
         welcomeFont.draw(batch, subTitle, subX, subY);
 
+        if (modeSelected) {
+            String selectedModeText = "Selected: " +
+                (gameState.getGameMode() == GameMode.HUMAN_VS_BOT ? "Human vs Bot" : "Human vs Human");
+            GlyphLayout selectedLayout = new GlyphLayout(font, selectedModeText);
+            float selectedX = world.boardCenterX + (offsetZ - selectedLayout.width) / 2f;
+            float selectedY = world.boardCenterY + 115f;
+            font.draw(batch, selectedModeText, selectedX, selectedY);
+        }
+
         // centre the button label inside the button rectangle
+        if (humanVsHumanButtonBounds != null) {
+            GlyphLayout humanLayout = new GlyphLayout(font, "Human vs Human");
+            float textX = humanVsHumanButtonBounds.x + (humanVsHumanButtonBounds.width - humanLayout.width) / 2f;
+            float textY = humanVsHumanButtonBounds.y + (humanVsHumanButtonBounds.height + humanLayout.height) / 2f;
+            font.draw(batch, "Human vs Human", textX, textY);
+        }
+
+        if (humanVsBotButtonBounds != null) {
+            GlyphLayout botLayout = new GlyphLayout(font, "Human vs Bot");
+            float textX = humanVsBotButtonBounds.x + (humanVsBotButtonBounds.width - botLayout.width) / 2f;
+            float textY = humanVsBotButtonBounds.y + (humanVsBotButtonBounds.height + botLayout.height) / 2f;
+            font.draw(batch, "Human vs Bot", textX, textY);
+        }
+
         if (startButtonBounds != null) {
             GlyphLayout btnLayout = new GlyphLayout(font, "Start Game");
-            float btnTextX = startButtonBounds.x + (startButtonBounds.width  - btnLayout.width)  / 2f;
+            float btnTextX = startButtonBounds.x + (startButtonBounds.width - btnLayout.width) / 2f;
             float btnTextY = startButtonBounds.y + (startButtonBounds.height + btnLayout.height) / 2f;
             font.draw(batch, "Start Game", btnTextX, btnTextY);
         }
@@ -330,12 +406,17 @@ public class Main extends ApplicationAdapter {
      * calculates the position and size of the start button, centred in the right-side panel
      */
     private void computeStartButtonBounds() {
-        float startW = 220;
-        float startH = 60;
-        // the button lives in the offsetZ panel area to the right of the board
-        float startX = world.boardCenterX + (offsetZ - startW) / 2f;
-        float startY = world.boardCenterY - 30f;
-        startButtonBounds = new Rectangle(startX, startY, startW, startH);
+        float buttonW = 240;
+        float buttonH = 60;
+        float buttonX = world.boardCenterX + (offsetZ - buttonW) / 2f;
+
+        float humanVsHumanY = world.boardCenterY + 10f;
+        float humanVsBotY = world.boardCenterY - 80f;
+        float startY = world.boardCenterY - 190f;
+
+        humanVsHumanButtonBounds = new Rectangle(buttonX, humanVsHumanY, buttonW, buttonH);
+        humanVsBotButtonBounds = new Rectangle(buttonX, humanVsBotY, buttonW, buttonH);
+        startButtonBounds = new Rectangle(buttonX, startY, buttonW, buttonH);
     }
 
     /**
@@ -348,6 +429,20 @@ public class Main extends ApplicationAdapter {
 
         // on the welcome screen only the start button matters
         if (showWelcome) {
+            if (humanVsHumanButtonBounds != null && humanVsHumanButtonBounds.contains(touchPos.x, touchPos.y)) {
+                gameState.setGameMode(GameMode.HUMAN_VS_HUMAN);
+                modeSelected = true;
+                showStatusMessage("Mode selected: Human vs Human", 1.2f);
+                return;
+            }
+
+            if (humanVsBotButtonBounds != null && humanVsBotButtonBounds.contains(touchPos.x, touchPos.y)) {
+                gameState.setGameMode(GameMode.HUMAN_VS_BOT);
+                modeSelected = true;
+                showStatusMessage("Mode selected: Human vs Bot", 1.2f);
+                return;
+            }
+
             if (startButtonBounds != null && startButtonBounds.contains(touchPos.x, touchPos.y)) {
                 showWelcome = false;
             }
