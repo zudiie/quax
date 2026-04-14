@@ -2,50 +2,119 @@ package src.softies.board;
 
 import src.softies.PlayerColour;
 import src.softies.GameMode;
+import java.util.Random;
 
-// holds the live state of the game — right now that's just whose turn it is
-// anything that needs to be shared across renderers, input handlers, etc. lives here
+// holds the live state of the game — current player, colour assignments, pie rule,
+// game-over state, and which colour the bot is playing as
 public class GameState {
 
+    // each player's currently assigned colour — these swap when the pie rule is activated
+    private PlayerColour player1Colour;
+    private PlayerColour player2Colour;
+
+    // the colour whose turn it is right now
     private PlayerColour currentPlayer;
-    private boolean firstMoveMade;
-    private boolean pieRuleUsed;
+    private PlayerColour botColour;
+    private boolean firstMoveMade = false;
+    private boolean pieRuleAvailable = false;
+    private PlayerColour winner = null;
     private GameMode gameMode;
+
     /**
-     * initialises the game state with BLACK going first, as per the rules
+     * sets up the game with a randomly assigned bot colour
+     * BLACK always moves first in Quax, so if the bot is BLACK it also moves first
      */
     public GameState() {
-        // black always goes first in Quax
+        player1Colour = PlayerColour.BLACK;
+        player2Colour = PlayerColour.WHITE;
         currentPlayer = PlayerColour.BLACK;
-        firstMoveMade = false;
-        pieRuleUsed = false;
+
+        botColour = new Random().nextBoolean() ? PlayerColour.BLACK : PlayerColour.WHITE;
+        System.out.println("Game starting — bot is playing as " + botColour);
+
         gameMode = GameMode.HUMAN_VS_HUMAN;
     }
 
+    // ----- getters -----
+
+    /** @return colour currently assigned to Player 1 */
+    public PlayerColour getPlayer1Colour() { return player1Colour; }
+
+    /** @return colour currently assigned to Player 2 */
+    public PlayerColour getPlayer2Colour() { return player2Colour; }
+
+    /** @return the colour whose turn it is right now */
+    public PlayerColour getCurrentPlayer() { return currentPlayer; }
+
+    /** @return the colour the bot is currently playing as */
+    public PlayerColour getBotColour() { return botColour; }
+
+    /** @return true if it is currently the bot's turn to move */
+    public boolean isBotTurn() { return currentPlayer == botColour; }
+
+    /** @return true once BLACK has placed the first stone */
+    public boolean isFirstMoveMade() { return firstMoveMade; }
 
     /**
-     * @return whichever player's turn it currently is
+     * called after BLACK's first stone is placed — opens the pie rule window for WHITE
+     * safe to call multiple times; only takes effect the first time
      */
-    public PlayerColour getCurrentPlayer() {
-        return currentPlayer;
-    }
-
-    public boolean isFirstMoveMade() {
-        return firstMoveMade;
-    }
-
     public void setFirstMoveMade() {
-        this.firstMoveMade = true;
+        if (!firstMoveMade) {
+            firstMoveMade = true;
+            pieRuleAvailable = true;
+        }
     }
 
-    public boolean isPieRuleUsed() {
-        return pieRuleUsed;
+    /** @return true if the "Activate Pie Rule" button should be shown */
+    public boolean isPieRuleAvailable() { return pieRuleAvailable; }
+
+    /**
+     * activates the pie rule:
+     * swaps which colour each player is assigned to, swaps the bot's colour accordingly,
+     * sets WHITE to play next, and permanently closes the pie rule window
+     *
+     * the first tile stays BLACK on screen because after the swap
+     * the player now assigned BLACK owns that stone — no visual change needed
+     */
+    public void activatePieRule() {
+        PlayerColour tmp = player1Colour;
+        player1Colour    = player2Colour;
+        player2Colour    = tmp;
+
+        // bot colour flips with the player colours
+        botColour = (botColour == PlayerColour.BLACK) ? PlayerColour.WHITE : PlayerColour.BLACK;
+
+        currentPlayer    = PlayerColour.WHITE;
+        pieRuleAvailable = false;
+        System.out.println("Pie rule activated — bot is now " + botColour);
     }
 
-    public void setPieRuleUsed() {
-        this.pieRuleUsed = true;
+    /**
+     * passes the turn to the other colour
+     * also closes the pie rule window if WHITE chose to play instead of swapping
+     */
+    public void togglePlayer() {
+        if (pieRuleAvailable && currentPlayer == PlayerColour.WHITE) {
+            pieRuleAvailable = false;
+        }
+        currentPlayer = (currentPlayer == PlayerColour.BLACK) ? PlayerColour.WHITE : PlayerColour.BLACK;
+        System.out.println("Turn → " + currentPlayer);
     }
 
+    /**
+     * records the winner and freezes the game
+     * @param colour the colour that just completed a winning path
+     */
+    public void setWinner(PlayerColour colour) {
+        this.winner = colour;
+    }
+
+    /** @return the winning colour, or null if the game is still in progress */
+    public PlayerColour getWinner() { return winner; }
+
+    /** @return true once a winner has been set — all further moves are blocked */
+    public boolean isGameOver() { return winner != null; }
 
     public GameMode getGameMode() {
         return gameMode;
@@ -54,30 +123,4 @@ public class GameState {
     public void setGameMode(GameMode gameMode) {
         this.gameMode = gameMode;
     }
-
-    /**
-     * applies the pie rule after the first move, if it has not already been used
-     * swaps the turn once and marks the pie rule as used
-     */
-    public void applyPieRule() {
-        if (firstMoveMade && !pieRuleUsed) {
-            currentPlayer = (currentPlayer == PlayerColour.BLACK)
-                ? PlayerColour.WHITE
-                : PlayerColour.BLACK;
-
-            pieRuleUsed = true;
-            System.out.println("Pie rule applied. Players swapped.");
-        }
-    }
-
-    /**
-     * flips the turn to the other player after a valid move
-     * logs a message so you can see the switch in the console
-     */
-    public void togglePlayer() {
-        // black becomes white and vice versa
-        currentPlayer = (currentPlayer == PlayerColour.BLACK) ? PlayerColour.WHITE : PlayerColour.BLACK;
-        System.out.println("It is now " + currentPlayer + "'s turn.");
-    }
 }
-

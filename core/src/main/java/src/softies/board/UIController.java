@@ -1,211 +1,224 @@
 package src.softies.board;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
-// manages the quit button and the "are you sure?" confirmation dialog
-// handles positioning, drawing and click detection for both UI elements
+// NOTE: this class is superseded by WelcomeScreen, QuitWidget and PieRuleWidget
+// it is kept only to satisfy compilation — Main.java no longer instantiates it
+// the swapFirstTileColour() call has been removed because:
+//   - the pie rule works by swapping player colour assignments, not tile graphics
+//   - the first tile was placed as BLACK; after the swap Player 2 is BLACK and owns it
+//   - so the tile correctly stays BLACK in both the model and the visual
 public class UIController {
 
     private final Viewport viewport;
     private final OrthographicCamera camera;
     private final WorldCalculator world;
+    private final GameState gameState;
 
+    private boolean inGame          = false;
     private boolean showQuitConfirm = false;
-    private Rectangle quitButtonBounds;
-    private Rectangle yesButtonBounds;
-    private Rectangle noButtonBounds;
 
-    // horizontal offset used to position dialog elements — matches Main's offsetZ
+    private Rectangle quitButtonBounds;
+    private Rectangle pieRuleButtonBounds;
+    private Rectangle noButtonBounds;
+    private Rectangle yesButtonBounds;
+
     private final float offsetZ = 300f;
 
-    /**
-     * creates the controller with the camera and world info needed to position UI elements
-     * @param viewport the active viewport - used to get world dimensions and unproject clicks
-     * @param camera the orthographic camera - used to find the visible world bounds
-     * @param world provides board centre coordinates for dialog placement
-     */
-    public UIController(Viewport viewport, OrthographicCamera camera, WorldCalculator world) {
-        this.viewport = viewport;
-        this.camera = camera;
-        this.world = world;
+    private static final Color BTN_BG       = new Color(0.14f, 0.24f, 0.62f, 1f);
+    private static final Color BTN_BG_HOVER = new Color(0.22f, 0.36f, 0.80f, 1f);
+    private static final Color GOLD_BORDER  = new Color(0.82f, 0.67f, 0.12f, 1f);
+    private static final Color DIALOG_BG    = new Color(0.10f, 0.18f, 0.52f, 0.97f);
+    private static final Color NO_IDLE      = new Color(0.38f, 0.07f, 0.07f, 1f);
+    private static final Color NO_HOVER     = new Color(0.58f, 0.12f, 0.12f, 1f);
+    private static final Color YES_IDLE     = new Color(0.07f, 0.30f, 0.07f, 1f);
+    private static final Color YES_HOVER    = new Color(0.12f, 0.48f, 0.12f, 1f);
+
+    public UIController(Viewport viewport, OrthographicCamera camera,
+                        WorldCalculator world, GameState gameState) {
+        this.viewport  = viewport;
+        this.camera    = camera;
+        this.world     = world;
+        this.gameState = gameState;
     }
 
-    /**
-     * recalculates all button rectangles based on the current camera position
-     * call this every frame before doing any input handling or drawing
-     */
+    public void setInGame(boolean inGame)  { this.inGame = inGame; }
+    public void triggerQuitConfirm()       { showQuitConfirm = true; }
+
+    // kept for source-level compatibility — no longer used by Main
+    public void setInputHandler(InputHandler inputHandler) { /* no-op */ }
+
     public void updateBounds() {
-        // work out the visible world edges from the camera position
         float worldRight  = camera.position.x + viewport.getWorldWidth()  / 2;
         float worldBottom = camera.position.y - viewport.getWorldHeight() / 2;
 
-        // pin the quit button to the bottom-right corner of the visible area
-        float buttonWidth  = 80;
-        float buttonHeight = 40;
-        float quitX = worldRight - buttonWidth - 20;
-        float quitY = worldBottom + 20;
-        quitButtonBounds = new Rectangle(quitX, quitY, buttonWidth, buttonHeight);
+        if (inGame) {
+            float qW = 90, qH = 44;
+            float qX = worldRight - qW - 20;
+            float qY = worldBottom + 20;
+            quitButtonBounds = new Rectangle(qX, qY, qW, qH);
 
-        // only compute dialog button positions if the dialog is actually visible
-        if (showQuitConfirm) {
-            float dialogWidth  = 300;
-            float dialogHeight = 150;
-            float dialogX = world.boardCenterX + (offsetZ - dialogWidth)  / 2;
-            float dialogY = world.boardCenterY - dialogHeight / 2;
-
-            float btnW = 80;
-            float btnH = 40;
-            // yes sits on the left, no on the right
-            float yesX = dialogX + 50;
-            float yesY = dialogY + 40;
-            float noX  = dialogX + 170;
-            float noY  = dialogY + 40;
-
-            yesButtonBounds = new Rectangle(yesX, yesY, btnW, btnH);
-            noButtonBounds  = new Rectangle(noX,  noY,  btnW, btnH);
+            if (gameState.isPieRuleAvailable()) {
+                float pW = 190, pH = 44;
+                pieRuleButtonBounds = new Rectangle(qX - pW - 14, qY, pW, pH);
+            } else {
+                pieRuleButtonBounds = null;
+            }
         } else {
-            // clear these so stale rectangles don't accidentally eat clicks
-            yesButtonBounds = null;
+            quitButtonBounds    = null;
+            pieRuleButtonBounds = null;
+        }
+
+        if (showQuitConfirm) {
+            float dW = 400, dH = 200;
+            float dX = world.boardCenterX + (offsetZ - dW) / 2f;
+            float dY = world.boardCenterY - dH / 2f;
+            float bW = 150, bH = 52, bY = dY + 36, pad = 24;
+            noButtonBounds  = new Rectangle(dX + pad,           bY, bW, bH);
+            yesButtonBounds = new Rectangle(dX + dW - bW - pad, bY, bW, bH);
+        } else {
             noButtonBounds  = null;
+            yesButtonBounds = null;
         }
     }
 
-    /**
-     * draws the quit button and, if the dialog is open, the full confirmation overlay
-     * uses the ShapeRenderer for backgrounds and borders, then the batch for text
-     * @param shapeRenderer for drawing filled and outlined rectangles
-     * @param batch for drawing text on top
-     * @param font the font to use for all button labels
-     */
-    public void draw(ShapeRenderer shapeRenderer, SpriteBatch batch, BitmapFont font) {
+    public void draw(ShapeRenderer sr, SpriteBatch batch, BitmapFont font) {
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        sr.setProjectionMatrix(camera.combined);
 
-        shapeRenderer.setProjectionMatrix(camera.combined);
+        Vector3 mouse = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+        viewport.unproject(mouse);
 
-        // draw the quit button background — slightly lighter on hover
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        // button backgrounds
+        sr.begin(ShapeRenderer.ShapeType.Filled);
         if (quitButtonBounds != null) {
-            Vector3 mousePos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-            viewport.unproject(mousePos);
-            boolean hover = quitButtonBounds.contains(mousePos.x, mousePos.y);
-            shapeRenderer.setColor(hover ? 0.3f : 0.2f, 0.2f, 0.2f, 1);
-            shapeRenderer.rect(quitButtonBounds.x, quitButtonBounds.y,
-                quitButtonBounds.width, quitButtonBounds.height);
+            sr.setColor(quitButtonBounds.contains(mouse.x, mouse.y) ? BTN_BG_HOVER : BTN_BG);
+            sr.rect(quitButtonBounds.x, quitButtonBounds.y, quitButtonBounds.width, quitButtonBounds.height);
         }
-        shapeRenderer.end();
-
-        // white outline around the quit button
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        shapeRenderer.setColor(1, 1, 1, 1);
-        if (quitButtonBounds != null) {
-            shapeRenderer.rect(quitButtonBounds.x, quitButtonBounds.y,
-                quitButtonBounds.width, quitButtonBounds.height);
+        if (pieRuleButtonBounds != null) {
+            sr.setColor(pieRuleButtonBounds.contains(mouse.x, mouse.y) ? BTN_BG_HOVER : BTN_BG);
+            sr.rect(pieRuleButtonBounds.x, pieRuleButtonBounds.y, pieRuleButtonBounds.width, pieRuleButtonBounds.height);
         }
-        shapeRenderer.end();
+        sr.end();
 
-        // everything below only renders when the confirmation dialog is open
+        // gold button borders
+        sr.begin(ShapeRenderer.ShapeType.Line);
+        sr.setColor(GOLD_BORDER);
+        if (quitButtonBounds    != null) sr.rect(quitButtonBounds.x,    quitButtonBounds.y,    quitButtonBounds.width,    quitButtonBounds.height);
+        if (pieRuleButtonBounds != null) sr.rect(pieRuleButtonBounds.x, pieRuleButtonBounds.y, pieRuleButtonBounds.width, pieRuleButtonBounds.height);
+        sr.end();
+
+        // quit confirmation dialog
         if (showQuitConfirm) {
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+            float dW = 400, dH = 200;
+            float dX = world.boardCenterX + (offsetZ - dW) / 2f;
+            float dY = world.boardCenterY - dH / 2f;
+            float bW = 150, bH = 52, bY = dY + 36, pad = 24;
+            float noX  = dX + pad;
+            float yesX = dX + dW - bW - pad;
 
-            // dim overlay to visually block the game behind the dialog
-            shapeRenderer.setColor(0, 0, 0, 0.7f);
-            float worldLeft   = camera.position.x - viewport.getWorldWidth()  / 2;
-            float worldBottom = camera.position.y - viewport.getWorldHeight() / 2;
-            shapeRenderer.rect(worldLeft, worldBottom, viewport.getWorldWidth(), viewport.getWorldHeight());
+            sr.begin(ShapeRenderer.ShapeType.Filled);
+            // dim overlay behind dialog
+            sr.setColor(0f, 0f, 0f, 0.70f);
+            float wl = camera.position.x - viewport.getWorldWidth()  / 2;
+            float wb = camera.position.y - viewport.getWorldHeight() / 2;
+            sr.rect(wl, wb, viewport.getWorldWidth(), viewport.getWorldHeight());
+            // dialog background
+            sr.setColor(DIALOG_BG);
+            sr.rect(dX, dY, dW, dH);
+            // No button — dark red, left
+            sr.setColor(noButtonBounds  != null && noButtonBounds.contains(mouse.x,  mouse.y) ? NO_HOVER  : NO_IDLE);
+            sr.rect(noX, bY, bW, bH);
+            // Yes button — dark green, right
+            sr.setColor(yesButtonBounds != null && yesButtonBounds.contains(mouse.x, mouse.y) ? YES_HOVER : YES_IDLE);
+            sr.rect(yesX, bY, bW, bH);
+            sr.end();
 
-            // dialog box background
-            float dialogWidth  = 300;
-            float dialogHeight = 150;
-            float dialogX = world.boardCenterX + (offsetZ - dialogWidth)  / 2;
-            float dialogY = world.boardCenterY - dialogHeight / 2;
-            shapeRenderer.setColor(0.2f, 0.2f, 0.2f, 1);
-            shapeRenderer.rect(dialogX, dialogY, dialogWidth, dialogHeight);
-
-            // yes and no button fills
-            float btnW = 80;
-            float btnH = 40;
-            float yesX = dialogX + 50;
-            float yesY = dialogY + 40;
-            float noX  = dialogX + 170;
-            float noY  = dialogY + 40;
-            shapeRenderer.setColor(0.5f, 0.5f, 0.5f, 1);
-            shapeRenderer.rect(yesX, yesY, btnW, btnH);
-            shapeRenderer.rect(noX,  noY,  btnW, btnH);
-            shapeRenderer.end();
-
-            // button outlines
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-            shapeRenderer.setColor(1, 1, 1, 1);
-            shapeRenderer.rect(yesX, yesY, btnW, btnH);
-            shapeRenderer.rect(noX,  noY,  btnW, btnH);
-            shapeRenderer.end();
+            // borders
+            sr.begin(ShapeRenderer.ShapeType.Line);
+            sr.setColor(GOLD_BORDER);
+            sr.rect(dX, dY, dW, dH);
+            sr.setColor(1f, 1f, 1f, 0.50f);
+            sr.rect(noX,  bY, bW, bH);
+            sr.rect(yesX, bY, bW, bH);
+            sr.end();
         }
 
         Gdx.gl.glDisable(GL20.GL_BLEND);
 
-        // draw all text in a fresh batch pass so it renders on top of the shapes
+        // text on top
         batch.begin();
         if (quitButtonBounds != null) {
-            font.draw(batch, "Quit", quitButtonBounds.x + 20, quitButtonBounds.y + 28);
+            font.setColor(Color.WHITE);
+            drawCentred(batch, font, "Quit", quitButtonBounds);
         }
-
+        if (pieRuleButtonBounds != null) {
+            font.setColor(Color.WHITE);
+            drawCentred(batch, font, "Activate Pie Rule", pieRuleButtonBounds);
+        }
         if (showQuitConfirm) {
-            // re-derive positions here since local vars from above are out of scope
-            float dialogWidth  = 300;
-            float dialogHeight = 150;
-            float dialogX = world.boardCenterX + (offsetZ - dialogWidth)  / 2;
-            float dialogY = world.boardCenterY - dialogHeight / 2;
-            float btnW = 80;
-            float btnH = 40;
-            float yesX = dialogX + 50;
-            float yesY = dialogY + 40;
-            float noX  = dialogX + 170;
-            float noY  = dialogY + 40;
+            float dW = 400, dH = 200;
+            float dX = world.boardCenterX + (offsetZ - dW) / 2f;
+            float dY = world.boardCenterY - dH / 2f;
+            float bW = 150, bH = 52, bY = dY + 36, pad = 24;
+            float noX  = dX + pad;
+            float yesX = dX + dW - bW - pad;
 
-            font.draw(batch, "Quit game?", dialogX + 90, dialogY + 120);
-            font.draw(batch, "Yes", yesX + 25, yesY + 28);
-            font.draw(batch, "No",  noX  + 28, noY  + 28);
+            font.setColor(Color.WHITE);
+            String title = "Quit the game?";
+            GlyphLayout tl = new GlyphLayout(font, title);
+            font.draw(batch, title, dX + (dW - tl.width) / 2f, dY + dH - 30f);
+
+            drawCentredXY(batch, font, "Keep Playing", noX,  bY, bW, bH);
+            drawCentredXY(batch, font, "Yes, Quit",    yesX, bY, bW, bH);
         }
+        font.setColor(Color.WHITE);
         batch.end();
     }
 
-    /**
-     * processes a click in world coords and returns whether the UI consumed it
-     * if the dialog is open, all clicks are consumed - only yes/no do anything
-     * @param touchPos the click position in world coordinates
-     * @return true if the click was handled by a UI element (don't pass it to the board)
-     */
     public boolean handleInput(Vector3 touchPos) {
         if (showQuitConfirm) {
             if (yesButtonBounds != null && yesButtonBounds.contains(touchPos.x, touchPos.y)) {
-                // player confirmed — shut it down
                 Gdx.app.exit();
                 return true;
-            } else if (noButtonBounds != null && noButtonBounds.contains(touchPos.x, touchPos.y)) {
-                // player cancelled — close the dialog and resume
+            }
+            if (noButtonBounds != null && noButtonBounds.contains(touchPos.x, touchPos.y)) {
                 showQuitConfirm = false;
                 return true;
             }
-            // any click outside yes/no still gets swallowed while the dialog is up
+            return true; // swallow all clicks while dialog is open
+        }
+        if (pieRuleButtonBounds != null && pieRuleButtonBounds.contains(touchPos.x, touchPos.y)) {
+            // swap player colour assignments only — do NOT touch the tile graphic
+            // the first stone stays BLACK because after the swap Player 2 now IS BLACK
+            gameState.activatePieRule();
             return true;
         }
-
-        // quit button clicked — show the confirmation dialog next frame
         if (quitButtonBounds != null && quitButtonBounds.contains(touchPos.x, touchPos.y)) {
             showQuitConfirm = true;
             return true;
         }
-
-        // nothing UI-related was clicked
         return false;
+    }
+
+    private void drawCentred(SpriteBatch batch, BitmapFont font, String text, Rectangle r) {
+        drawCentredXY(batch, font, text, r.x, r.y, r.width, r.height);
+    }
+
+    private void drawCentredXY(SpriteBatch batch, BitmapFont font, String text,
+                               float x, float y, float w, float h) {
+        GlyphLayout gl = new GlyphLayout(font, text);
+        font.draw(batch, text, x + (w - gl.width) / 2f, y + (h + gl.height) / 2f);
     }
 }
