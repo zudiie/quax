@@ -363,6 +363,12 @@ public class Main extends ApplicationAdapter {
             case SUCCESS:
                 // move went through fine — nothing extra to do here
                 break;
+            case WIN:
+                // the player who just moved won — current player has already been toggled
+                PlayerColour winner = (gameState.getCurrentPlayer() == PlayerColour.BLACK)
+                    ? PlayerColour.WHITE : PlayerColour.BLACK;
+                showStatusMessage(winner + " wins!", 10f);
+                break;
         }
     }
 

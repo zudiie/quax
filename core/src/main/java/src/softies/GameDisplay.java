@@ -74,7 +74,7 @@ public class GameDisplay {
             // restore the interrupt flag if something cuts the sleep short
             Thread.currentThread().interrupt();
         }
-        System.out.println();
+        System.out.print("\n");
     }
 
     /**
