@@ -2,148 +2,126 @@ package src.softies;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Scanner;
 
-// the model class for the quax board - owns all cell state and handles stone/rhombus placement
-// the board is an 11x11 grid of octagonal cells, with rhombic cells sitting in the gaps between rows
+// the model class for the quax board — owns all cell state and handles stone/rhombus placement
+// the board is an 11x11 grid of octagonal cells with rhombic connectors in the diagonal gaps
+//
+// IMPORTANT: octagonCells and rhombusCells are now INSTANCE fields (not static)
+// Previously they were static, which caused crashes on game restart because
+// new QuaxBoard() replaced the static references while old WinCheck objects still held stale pointers
 public class QuaxBoard {
 
-    // fixed board size - quax is always 11x11
     private final static int BOARD_SIZE = 11;
 
-    // the two maps that store all cells, keyed by their label strings (e.g. "A1" or "R-B3")
-    private static Map<String, OctagonalCell> octagonCells;
-    private static Map<String, RhombicCell> rhombusCells;
+    // instance fields — each QuaxBoard owns its own maps; safe to recreate on restart
+    private final Map<String, OctagonalCell> octagonCells;
+    private final Map<String, RhombicCell>   rhombusCells;
 
     /**
      * creates a fresh board and populates it with empty cells
      */
     public QuaxBoard() {
-        this.octagonCells = new HashMap<>();
-        this.rhombusCells = new HashMap<>();
+        octagonCells = new HashMap<>();
+        rhombusCells = new HashMap<>();
         initializeBoard();
         System.out.println("system: board successfully initialised.");
     }
 
     /**
-     * fills both cell maps with empty octagon and rhombus cells
-     * rhombus cells only exist between rows (row > 1) and between columns (col < BOARD_SIZE - 1)
+     * fills both cell maps with empty cells
+     * rhombus cells only exist above row 1 and to the left of the last column
      */
     private void initializeBoard() {
-        // wipe any previous state before rebuilding
-        octagonCells.clear();
-        rhombusCells.clear();
-
         for (int row = 1; row <= BOARD_SIZE; row++) {
             for (int col = 0; col < BOARD_SIZE; col++) {
                 Point p = new Point(col, row);
                 String label = generateLabel(col, row);
-
-                // every position gets an octagonal cell for stone placement
                 octagonCells.put(label, new OctagonalCell(p, PlayerColour.EMPTY, CellType.OCTAGON));
-
-                // rhombus cells only appear between adjacent columns and above the bottom row
+                // rhombus cells sit in the diagonal gaps — only where both neighbours exist
                 if (col < BOARD_SIZE - 1 && row > 1) {
-                    String rKey = "R-" + label;
-                    rhombusCells.put(rKey, new RhombicCell(p, PlayerColour.EMPTY, CellType.RHOMBUS));
+                    rhombusCells.put("R-" + label, new RhombicCell(p, PlayerColour.EMPTY, CellType.RHOMBUS));
                 }
             }
         }
     }
 
     /**
-     * converts a column index and row number into a label string like "A1" or "K11"
-     * @param col zero-based column index
-     * @param row one-based row number
-     * @return the label string for that position
+     * converts a zero-based column index and one-based row number into a board label
+     * e.g. col=1, row=3 → "B3"
+     * public and static so WinCheck and InputHandler can use it without a board reference
      */
     public static String generateLabel(int col, int row) {
+<<<<<<< HEAD
         // shift 'A' by col to get the right letter
         char colChar = (char) ('A' + col);
         return "" + colChar + row;
+=======
+        return "" + (char)('A' + col) + row;
+>>>>>>> 5908d86e1a60d32fa2d636fbcb64a4de8afe9344
     }
 
-    /**
-     * checks whether a given label string actually maps to a cell on the board
-     * catches obvious bad inputs like "AO" or "1A" before anything tries to use them
-     * @param label the label to validate (e.g. "B5")
-     * @return true if the label exists in the octagon cell map
-     */
+    /** @return true if the label exists in the octagon map */
     public boolean isValidLabel(String label) {
-        // quick length check before doing a map lookup
         if (label == null || label.length() < 2) return false;
         return octagonCells.containsKey(label.toUpperCase());
     }
 
     /**
-     * attempts to place a stone for the given player on the named cell
-     * will reject the move if the label is invalid or the cell is already taken
-     * @param label the target cell label (e.g. "C4")
-     * @param colour the player placing the stone (BLACK or WHITE)
-     * @return true if placement succeeded, false if it was rejected
+     * attempts to place a stone for the given player on the named octagonal cell
+     * rejects the move if the label is invalid or the cell is already occupied
      */
     public boolean placeStone(String label, PlayerColour colour) {
         if (!isValidLabel(label)) {
-            System.out.println("error: invalid coordinate format. please use A-K and 1-11 (e.g., A1).");
+            System.out.println("error: invalid coordinate. use A-K and 1-11 (e.g. A1).");
             return false;
         }
-
-        // trim and uppercase so inputs like "b5 " still work
         OctagonalCell cell = octagonCells.get(label.trim().toUpperCase());
-
         if (cell.isOccupied()) {
-            System.out.println("error: cell " + label.toUpperCase() + " is already occupied. choose another cell.");
+            System.out.println("error: cell " + label.toUpperCase() + " is already occupied.");
             return false;
         }
-
-        // mark the cell with the player's colour and lock it
         cell.setColour(colour);
         cell.setOccupied(true);
         return true;
     }
 
     /**
-     * attempts to place a rhombus for the given player at the named rhombus key
-     * silently returns false if the cell doesn't exist or is already occupied
-     * @param rhombusKey the rhombus label (e.g. "R-B3")
-     * @param colour the player placing the rhombus
-     * @return true if placement succeeded, false otherwise
+     * attempts to place a rhombus connector for the given player
+     * returns false silently if the key is invalid or already occupied
      */
     public boolean placeRhombus(String rhombusKey, PlayerColour colour) {
         RhombicCell cell = rhombusCells.get(rhombusKey);
-        // null check covers keys that fall outside the valid rhombus area
-        if (cell == null || cell.isOccupied()) {
-            return false;
-        }
+        if (cell == null || cell.isOccupied()) return false;
         cell.setColour(colour);
         cell.setOccupied(true);
         return true;
     }
 
-    /**
-     * retrieves the octagonal cell at the given label, or null if it doesn't exist
-     * @param label the cell label (e.g. "A1")
-     * @return the OctagonalCell, or null
-     */
+    /** @return the OctagonalCell at the given label, or null */
     public OctagonalCell getOctagonalCell(String label) {
         return octagonCells.get(label);
     }
 
-    /**
-     * retrieves the rhombic cell at the given key, or null if it doesn't exist
-     * @param label the rhombus key (e.g. "R-B3")
-     * @return the RhombicCell, or null
-     */
+    /** @return the RhombicCell at the given key, or null */
     public RhombicCell getRhombicCell(String label) {
         return rhombusCells.get(label);
     }
 
-    /**
-     * @return the fixed size of the board (always 11)
-     */
+    /** used by WinCheck and BotPlayer to iterate all octagonal cells */
+    public Map<String, OctagonalCell> getOctagonCells() {
+        return octagonCells;
+    }
+
+    /** used by WinCheck and BotPlayer to iterate all rhombic cells */
+    public Map<String, RhombicCell> getRhombusCells() {
+        return rhombusCells;
+    }
+
+    /** @return the fixed board dimension (always 11) */
     public int getBoardSize() {
         return BOARD_SIZE;
     }
+<<<<<<< HEAD
 
     public Map<String, OctagonalCell> getOctagonCells() {
         return octagonCells;
@@ -166,4 +144,6 @@ public class QuaxBoard {
         int col = colChar - 'A';
         return new int[]{col, row};
     }
+=======
+>>>>>>> 5908d86e1a60d32fa2d636fbcb64a4de8afe9344
 }

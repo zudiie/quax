@@ -1,21 +1,19 @@
 package src.softies.board;
 
 import com.badlogic.gdx.maps.MapLayer;
-import com.badlogic.gdx.maps.MapObject;
-import com.badlogic.gdx.maps.objects.TextureMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
-import com.badlogic.gdx.maps.tiled.TiledMapTile;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.viewport.Viewport;
-import src.softies.PlayerColour;
 import src.softies.QuaxBoard;
 import src.softies.WinCheck;
 
-// translates raw screen clicks into board moves
-// checks both the octagon layer and the diamond (rhombus) object layer for hits
+// coordinates the two board-input subsystems:
+//   HoverDetector — tracks which cell is under the mouse each frame
+//   MoveHandler   — processes clicks, updates the model and tiles, checks for a win
+// also exposes placeBotMove() so Main can apply a bot decision programmatically
 public class InputHandler {
 
+<<<<<<< HEAD
     private final TiledMap map;
     private final TiledMapTileLayer octagonLayer;
     private final MapLayer diamondLayer;
@@ -24,40 +22,36 @@ public class InputHandler {
     private final Viewport viewport;
     private final QuaxBoard boardLogic;
     private final WinCheck winCheck;
+=======
+    private final HoverDetector hoverDetector;
+    private final MoveHandler   moveHandler;
+>>>>>>> 5908d86e1a60d32fa2d636fbcb64a4de8afe9344
 
-    // references to the first placed tile so pie rule can swap its colour
-    private TiledMapTileLayer.Cell firstOctagonCell = null;
-    private TextureMapObject firstRhombusTMO = null;
-
-    // tile GIDs from the tileset — these correspond to specific tile images
-    private static final int GID_EMPTY_RHO = 2;
-    private static final int GID_WHITE_RHO = 3;
-    private static final int GID_BLACK_RHO = 4;
-    private static final int GID_EMPTY_OCT = 5;
-    private static final int GID_WHITE_OCT = 6;
-    private static final int GID_BLACK_OCT = 7;
-
-    // the possible outcomes of a move attempt
+    // re-export the result enum so callers only need to import InputHandler
     public enum MoveResult {
+<<<<<<< HEAD
         SUCCESS,            // move went through and turn was toggled
         WIN,                // move went through and the player has won
         OCCUPIED,           // the clicked cell was already taken
         NOT_A_CELL,         // the click didn't land on any valid cell
         INVALID_PLACEMENT   // rhombus placement wasn't between two valid stones
+=======
+        SUCCESS, WIN, OCCUPIED, NOT_A_CELL, INVALID_PLACEMENT
+>>>>>>> 5908d86e1a60d32fa2d636fbcb64a4de8afe9344
     }
 
     /**
-     * creates the input handler with references to the map layers, game state and board logic
-     * @param map the loaded TiledMap (used to look up tiles and properties)
-     * @param octagonLayer the tile layer where octagonal cells live
-     * @param diamondLayer the object layer where rhombus TextureMapObjects are stored
-     * @param unitScale the same scale factor used everywhere else (0.25f)
-     * @param gameState tracks whose turn it is and lets us toggle after a valid move
-     * @param viewport used to convert screen coords to world coords
-     * @param boardLogic the board model that actually records placement state
+     * @param map          the loaded TiledMap
+     * @param octagonLayer tile layer where octagonal cells live
+     * @param diamondLayer object layer where rhombus TextureMapObjects are stored
+     * @param unitScale    pixel-to-world scale (0.25f)
+     * @param gameState    current player, first-move flag and winner
+     * @param viewport     converts screen coords to world coords
+     * @param boardLogic   the board model
      */
     public InputHandler(TiledMap map, TiledMapTileLayer octagonLayer, MapLayer diamondLayer,
                         float unitScale, GameState gameState, Viewport viewport, QuaxBoard boardLogic) {
+<<<<<<< HEAD
         this.map = map;
         this.octagonLayer = octagonLayer;
         this.diamondLayer = diamondLayer;
@@ -66,16 +60,43 @@ public class InputHandler {
         this.viewport = viewport;
         this.boardLogic = boardLogic;
         this.winCheck = new WinCheck(boardLogic);
+=======
+        hoverDetector = new HoverDetector(map, octagonLayer, diamondLayer, unitScale, viewport);
+        moveHandler   = new MoveHandler(map, octagonLayer, diamondLayer, unitScale, gameState, viewport, boardLogic);
+>>>>>>> 5908d86e1a60d32fa2d636fbcb64a4de8afe9344
     }
 
+    // -------------------------------------------------------------------------
+    // hover
+    // -------------------------------------------------------------------------
+
     /**
-     * figures out what (if anything) the player clicked on and applies the move
-     * checks the diamond layer first, then falls through to octagon tile detection
-     * @param screenX raw screen x from Gdx.input.getX()
-     * @param screenY raw screen y from Gdx.input.getY()
+     * updates the hover polygon from the current mouse position — call once per frame
+     * @param screenX raw x from Gdx.input.getX()
+     * @param screenY raw y from Gdx.input.getY()
+     */
+    public void updateHover(int screenX, int screenY) {
+        hoverDetector.update(screenX, screenY);
+    }
+
+    /** @return the shape type under the mouse (NONE, OCTAGON, or RHOMBUS) */
+    public HoverDetector.HoverShape getHoverShape()    { return hoverDetector.getHoverShape(); }
+
+    /** @return polygon vertices for the hovered cell, ready for ShapeRenderer.polygon() */
+    public float[]                  getHoverVertices() { return hoverDetector.getHoverVertices(); }
+
+    // -------------------------------------------------------------------------
+    // human click
+    // -------------------------------------------------------------------------
+
+    /**
+     * processes a screen click and attempts to make a board move
+     * @param screenX raw x from Gdx.input.getX()
+     * @param screenY raw y from Gdx.input.getY()
      * @return a MoveResult indicating what happened
      */
     public MoveResult handleBoardClick(int screenX, int screenY) {
+<<<<<<< HEAD
         // convert screen pixel coords to world coords for hit testing
         Vector3 touchPos = new Vector3(screenX, screenY, 0);
         viewport.unproject(touchPos);
@@ -190,21 +211,37 @@ public class InputHandler {
 
         // nothing was hit
         return MoveResult.NOT_A_CELL;
+=======
+        return mapResult(moveHandler.handleClick(screenX, screenY));
+>>>>>>> 5908d86e1a60d32fa2d636fbcb64a4de8afe9344
     }
 
+    // -------------------------------------------------------------------------
+    // bot move — programmatic placement without a screen click
+    // -------------------------------------------------------------------------
+
     /**
-     * swaps the colour of the first placed tile — called when the pie rule is activated
-     * so the tile visually reflects the new owner
+     * places a stone programmatically for the bot at the given board cell label
+     * called by Main when the bot's think timer expires
+     * @param cellLabel board label such as "F6"
+     * @return a MoveResult indicating what happened
      */
-    public void swapFirstTileColour() {
-        if (firstOctagonCell != null) {
-            int currentGid = firstOctagonCell.getTile().getId();
-            int newGid = (currentGid == GID_BLACK_OCT) ? GID_WHITE_OCT : GID_BLACK_OCT;
-            firstOctagonCell.setTile(map.getTileSets().getTile(newGid));
-        }
-        if (firstRhombusTMO != null) {
-            int newGid = GID_WHITE_RHO;
-            firstRhombusTMO.setTextureRegion(map.getTileSets().getTile(newGid).getTextureRegion());
+    public MoveResult placeBotMove(String cellLabel) {
+        return mapResult(moveHandler.placeBotMove(cellLabel));
+    }
+
+    // -------------------------------------------------------------------------
+    // helpers
+    // -------------------------------------------------------------------------
+
+    /** maps MoveHandler.Result → MoveResult so callers use a single enum */
+    private MoveResult mapResult(MoveHandler.Result r) {
+        switch (r) {
+            case WIN:               return MoveResult.WIN;
+            case SUCCESS:           return MoveResult.SUCCESS;
+            case OCCUPIED:          return MoveResult.OCCUPIED;
+            case INVALID_PLACEMENT: return MoveResult.INVALID_PLACEMENT;
+            default:                return MoveResult.NOT_A_CELL;
         }
     }
 }
