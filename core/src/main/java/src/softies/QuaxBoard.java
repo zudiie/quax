@@ -51,13 +51,7 @@ public class QuaxBoard {
      * public and static so WinCheck and InputHandler can use it without a board reference
      */
     public static String generateLabel(int col, int row) {
-<<<<<<< HEAD
-        // shift 'A' by col to get the right letter
-        char colChar = (char) ('A' + col);
-        return "" + colChar + row;
-=======
         return "" + (char)('A' + col) + row;
->>>>>>> 5908d86e1a60d32fa2d636fbcb64a4de8afe9344
     }
 
     /** @return true if the label exists in the octagon map */
@@ -121,29 +115,4 @@ public class QuaxBoard {
     public int getBoardSize() {
         return BOARD_SIZE;
     }
-<<<<<<< HEAD
-
-    public Map<String, OctagonalCell> getOctagonCells() {
-        return octagonCells;
-    }
-
-    public Map<String, RhombicCell> getRhombusCells() {
-        return rhombusCells;
-    }
-
-    /**
-     * converts a label string like "B2" back into a {col, row} pair
-     * handy for any logic that needs to do positional maths on a label
-     * @param label the label to parse
-     * @return int array where [0] is the column index and [1] is the row number
-     */
-    private int[] parseLabel(String label) {
-        char colChar = label.charAt(0);
-        int row = Integer.parseInt(label.substring(1));
-        // convert the letter back to a zero-based column index
-        int col = colChar - 'A';
-        return new int[]{col, row};
-    }
-=======
->>>>>>> 5908d86e1a60d32fa2d636fbcb64a4de8afe9344
 }
