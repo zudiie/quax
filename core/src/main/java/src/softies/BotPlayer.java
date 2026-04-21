@@ -88,6 +88,142 @@ public class BotPlayer {
         return strategic;
     }
 
+    /**
+     * rates every non-occupied cell (octagonal and rhombic) from the bot's perspective
+     * in a normalized [0, 1] range where 1.0 = the bot wants this cell most
+     *
+     * ratings are banded to preserve the four-level priority cascade of selectMove:
+     *   winning move          → 1.00
+     *   blocks opponent win   → 0.95
+     *   legal rhombus         → 0.70 – 0.90  (via rhombusPathScore)
+     *   reachable octagon     → 0.10 – 0.60  (via ds + de)
+     *   illegal rhombus / unreachable → 0.00
+     *
+     * within a band, lower raw path cost → higher rating
+     */
+    public Map<String, Double> rateAllMoves() {
+        PlayerColour bot      = gameState.getBotColour();
+        PlayerColour opponent = opposite(bot);
+
+        Map<String, Double> ratings = new HashMap<>();
+
+        // priority 1 + 2 — collect EVERY winning / blocking cell, not just the first
+        Set<String> winningMoves  = collectImmediateMoves(bot);
+        Set<String> blockingMoves = collectImmediateMoves(opponent);
+        blockingMoves.removeAll(winningMoves); // winning takes precedence over blocking
+
+        for (String key : winningMoves)  ratings.put(key, 1.00);
+        for (String key : blockingMoves) ratings.put(key, 0.95);
+
+        // run Dijkstra once each direction — reused for both rhombus and octagon scoring
+        Map<String, Integer> distStart = dijkstraFull(bot, opponent, true);
+        Map<String, Integer> distEnd   = dijkstraFull(bot, opponent, false);
+
+        // priority 3 — legal rhombuses get a band score; illegal ones get 0.0
+        Map<String, Integer> rhombusRawScores = new LinkedHashMap<>();
+        for (Map.Entry<String, RhombicCell> e : board.getRhombusCells().entrySet()) {
+            String key = e.getKey();
+            if (ratings.containsKey(key) || e.getValue().isOccupied()) continue;
+
+            int[] rc = parseRhombusCoords(key);
+            if (rc == null) continue;
+
+            if (!isRhombusLegal(rc[0], rc[1], bot)) {
+                ratings.put(key, 0.0);
+                continue;
+            }
+            int raw = rhombusPathScore(distStart, distEnd, rc[0], rc[1]);
+            if (raw >= INF) {
+                ratings.put(key, 0.0);
+                continue;
+            }
+            rhombusRawScores.put(key, raw);
+        }
+
+        // priority 4 — reachable empty octagons get a band score; unreachable get 0.0
+        Map<String, Integer> octagonRawScores = new LinkedHashMap<>();
+        for (Map.Entry<String, OctagonalCell> e : board.getOctagonCells().entrySet()) {
+            String key = e.getKey();
+            OctagonalCell cell = e.getValue();
+            if (ratings.containsKey(key)) continue;
+            if (cell.isOccupied() || cell.getColour() == opponent) continue;
+
+            int ds = distStart.getOrDefault(key, INF);
+            int de = distEnd.getOrDefault(key, INF);
+            if (ds >= INF || de >= INF) {
+                ratings.put(key, 0.0);
+                continue;
+            }
+            octagonRawScores.put(key, ds + de);
+        }
+
+        applyBand(ratings, rhombusRawScores, 0.70, 0.90);
+        applyBand(ratings, octagonRawScores, 0.10, 0.60);
+
+        return ratings;
+    }
+
+    /** collects EVERY cell (octagon + legal rhombus) where `colour` would win if placed */
+    private Set<String> collectImmediateMoves(PlayerColour colour) {
+        Set<String> result = new HashSet<>();
+
+        for (Map.Entry<String, OctagonalCell> e : board.getOctagonCells().entrySet()) {
+            OctagonalCell cell = e.getValue();
+            if (cell.isOccupied()) continue;
+
+            cell.setColour(colour);
+            cell.setOccupied(true);
+            boolean wins = winCheck.checkWin(colour);
+            cell.setColour(PlayerColour.EMPTY);
+            cell.setOccupied(false);
+
+            if (wins) result.add(e.getKey());
+        }
+
+        for (Map.Entry<String, RhombicCell> e : board.getRhombusCells().entrySet()) {
+            RhombicCell cell = e.getValue();
+            if (cell.isOccupied()) continue;
+
+            int[] rc = parseRhombusCoords(e.getKey());
+            if (rc == null || !isRhombusLegal(rc[0], rc[1], colour)) continue;
+
+            cell.setColour(colour);
+            cell.setOccupied(true);
+            boolean wins = winCheck.checkWin(colour);
+            cell.setColour(PlayerColour.EMPTY);
+            cell.setOccupied(false);
+
+            if (wins) result.add(e.getKey());
+        }
+
+        return result;
+    }
+
+    /**
+     * normalises raw path costs into the given rating band
+     * lower raw = higher rating; a single-entry tier gets the band midpoint
+     */
+    private void applyBand(Map<String, Double> ratings, Map<String, Integer> scores,
+                           double bandLow, double bandHigh) {
+        if (scores.isEmpty()) return;
+
+        int min = Integer.MAX_VALUE, max = Integer.MIN_VALUE;
+        for (int s : scores.values()) {
+            if (s < min) min = s;
+            if (s > max) max = s;
+        }
+        double range = max - min;
+        double mid   = (bandLow + bandHigh) / 2.0;
+        double span  = bandHigh - bandLow;
+
+        for (Map.Entry<String, Integer> e : scores.entrySet()) {
+            double rating = (range == 0)
+                ? mid
+                : bandHigh - span * ((e.getValue() - min) / range);
+            ratings.put(e.getKey(), rating);
+        }
+    }
+
     // -------------------------------------------------------------------------
     // priority 1 & 2 — immediate win / block
     // -------------------------------------------------------------------------

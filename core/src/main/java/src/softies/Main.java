@@ -62,6 +62,7 @@ public class Main extends ApplicationAdapter {
     private InputHandler  inputHandler;
     private QuitWidget    quitWidget;
     private PieRuleWidget pieRuleWidget;
+    private BotStrategyWidget botStrategyWidget;
 
     // bot
     private BotPlayer botPlayer;
@@ -168,6 +169,8 @@ public class Main extends ApplicationAdapter {
         welcomeScreen   = new WelcomeScreen(world, viewport, camera, gameState);
         quitWidget      = new QuitWidget(world, viewport, camera);
         pieRuleWidget   = new PieRuleWidget(gameState, world, viewport, camera);
+        botStrategyWidget = new BotStrategyWidget(botPlayer, gameState, map, octagonLayer,
+            diamondLayer, UNIT_SCALE, viewport, camera);
     }
 
     /** generates both fonts via FontLoader */
@@ -188,6 +191,7 @@ public class Main extends ApplicationAdapter {
         viewport.apply();
         quitWidget.updateBounds();
         pieRuleWidget.updateBounds();
+        botStrategyWidget.updateBounds(showWelcome);
 
         if (Gdx.input.justTouched()) handleInput();
 
@@ -202,6 +206,7 @@ public class Main extends ApplicationAdapter {
         // widgets always draw last so they appear over the board
         quitWidget.draw(shapeRenderer, batch, font);
         pieRuleWidget.draw(shapeRenderer, batch, font);
+        botStrategyWidget.draw(shapeRenderer, batch, font);
     }
 
     /** clears the screen to the neutral grey background each frame */
@@ -243,10 +248,11 @@ public class Main extends ApplicationAdapter {
         }
     }
 
-    /** renders the in-game view: tile map, diamonds, hover highlight, board text */
+    /** renders the in-game view: tile map, diamonds, bot-strategy overlay, hover highlight, board text */
     private void renderGame() {
         renderTiles();
         renderDiamonds();
+        botStrategyWidget.drawOverlay(shapeRenderer);
         renderHoverOverlay();
         renderBoardText();
     }
@@ -346,6 +352,9 @@ public class Main extends ApplicationAdapter {
             // reschedule so the bot tries again rather than freezing
             System.err.println("Bot selected invalid cell: " + label + " — retrying");
             botThinkTimer = 0.5f;
+        } else {
+            // the board changed, so any cached bot ratings are stale
+            botStrategyWidget.invalidate();
         }
     }
 
@@ -368,8 +377,13 @@ public class Main extends ApplicationAdapter {
         // quit dialog eats all clicks while open — always checked first
         if (quitWidget.handleInput(tp)) return;
 
+        // bot-strategy toggle — cheap to check, must come before pie rule so it wins overlaps
+        if (botStrategyWidget.handleInput(tp)) return;
+
         // pie rule button — must be checked before board input
         if (pieRuleWidget.handleInput(tp)) {
+            // pie rule swaps colours, so the bot's ratings of every cell change
+            botStrategyWidget.invalidate();
             // pie rule may have transferred the turn to the bot (e.g. bot was WHITE,
             // human activated pie rule, now bot is BLACK — or vice versa)
             scheduleBotMoveIfNeeded();
@@ -397,6 +411,8 @@ public class Main extends ApplicationAdapter {
         } else if (action == WelcomeScreen.WelcomeAction.START) {
             showWelcome = false;
             quitWidget.setVisible(true);
+            // force a fresh rating for the opening position
+            botStrategyWidget.invalidate();
             scheduleBotMoveIfNeeded();
         } else if (action == WelcomeScreen.WelcomeAction.QUIT_CONFIRM) {
             quitWidget.triggerConfirm();
@@ -418,10 +434,12 @@ public class Main extends ApplicationAdapter {
                 break;
             case SUCCESS:
                 // human move succeeded — schedule bot if it is now the bot's turn
+                botStrategyWidget.invalidate();
                 scheduleBotMoveIfNeeded();
                 break;
             case WIN:
                 // BoardRenderer shows the win overlay automatically
+                botStrategyWidget.invalidate();
                 break;
             default:
                 break;
@@ -485,6 +503,8 @@ public class Main extends ApplicationAdapter {
         inputHandler  = new InputHandler(map, octagonLayer, diamondLayer, UNIT_SCALE, gameState, viewport, boardLogic);
         boardRenderer = new BoardRenderer(world, gameState, viewport, camera);
         pieRuleWidget = new PieRuleWidget(gameState, world, viewport, camera);
+        botStrategyWidget = new BotStrategyWidget(botPlayer, gameState, map, octagonLayer,
+            diamondLayer, UNIT_SCALE, viewport, camera);
 
         // reset all tile and object graphics to the empty state
         resetOctagonTiles(octagonLayer);
