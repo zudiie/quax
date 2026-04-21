@@ -42,6 +42,11 @@ public class BotStrategyWidget {
     private Map<String, Double> cachedRatings = null;
     private boolean dirty = true;
 
+    private final GlyphLayout labelLayout = new GlyphLayout();
+
+    @FunctionalInterface
+    private interface CellVisitor { void visit(float[] verts, double rating); }
+
     // must match HoverDetector / MoveHandler
     private static final int GID_EMPTY_OCT = 5;
     private static final float OCT_CUT = 0.25f;
@@ -52,6 +57,11 @@ public class BotStrategyWidget {
     private static final Color GOLD      = new Color(0.82f, 0.67f, 0.12f, 1f);
 
     private static final float OVERLAY_ALPHA = 0.28f;
+
+    private static final float LABEL_MIN_RATING = 0.40f;
+    private static final float LABEL_FONT_SCALE_OCTAGON = 0.12f;
+    private static final float LABEL_FONT_SCALE_RHOMBUS = 0.10f;
+    private static final float DEFAULT_FONT_SCALE = 0.2f;
 
     private static final float BTN_W   = 190f;
     private static final float BTN_H   = 44f;
@@ -132,26 +142,51 @@ public class BotStrategyWidget {
 
     /**
      * draws the translucent heat-map overlay over every non-occupied cell
-     * no-op when the toggle is off
+     * no-op when the toggle is off — must be called while ShapeRenderer is idle
      */
-    public void drawOverlay(ShapeRenderer sr) {
+    public void drawOverlayShapes(ShapeRenderer sr) {
         if (!enabled) return;
-
-        if (dirty || cachedRatings == null) {
-            cachedRatings = botPlayer.rateAllMoves();
-            dirty = false;
-        }
+        ensureRatingsFresh();
 
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
         sr.setProjectionMatrix(camera.combined);
 
         sr.begin(ShapeRenderer.ShapeType.Filled);
-        drawOctagonOverlays(sr);
-        drawRhombusOverlays(sr);
+        forEachOctagonCell((verts, rating) -> { setGradientColor(sr, rating); fillPolygon(sr, verts); });
+        forEachRhombusCell((verts, rating) -> { setGradientColor(sr, rating); fillPolygon(sr, verts); });
         sr.end();
 
         Gdx.gl.glDisable(GL20.GL_BLEND);
+    }
+
+    /**
+     * draws the numerical weight label on each heat-map cell with rating >= LABEL_MIN_RATING
+     * no-op when the toggle is off — must be called while SpriteBatch is active
+     */
+    public void drawOverlayLabels(SpriteBatch batch, BitmapFont font) {
+        if (!enabled) return;
+        ensureRatingsFresh();
+
+        try {
+            font.setColor(Color.WHITE);
+            forEachOctagonCell((verts, rating) -> {
+                if (rating >= LABEL_MIN_RATING) drawLabel(batch, font, verts, rating, LABEL_FONT_SCALE_OCTAGON);
+            });
+            forEachRhombusCell((verts, rating) -> {
+                if (rating >= LABEL_MIN_RATING) drawLabel(batch, font, verts, rating, LABEL_FONT_SCALE_RHOMBUS);
+            });
+        } finally {
+            // always restore — downstream text draws depend on the default scale
+            font.getData().setScale(DEFAULT_FONT_SCALE);
+        }
+    }
+
+    private void ensureRatingsFresh() {
+        if (dirty || cachedRatings == null) {
+            cachedRatings = botPlayer.rateAllMoves();
+            dirty = false;
+        }
     }
 
     /** processes a click — flips the toggle if the button was hit */
@@ -166,7 +201,7 @@ public class BotStrategyWidget {
     // overlay rendering
     // -------------------------------------------------------------------------
 
-    private void drawOctagonOverlays(ShapeRenderer sr) {
+    private void forEachOctagonCell(CellVisitor v) {
         int mapH = map.getProperties().get("height", Integer.class);
         float tileW = octagonLayer.getTileWidth()  * unitScale;
         float tileH = octagonLayer.getTileHeight() * unitScale;
@@ -188,14 +223,12 @@ public class BotStrategyWidget {
 
                 float wx = cellX * tileW;
                 float wy = cellY * tileH;
-                float[] verts = buildOctagonVertices(wx, wy, tileW, tileH);
-                setGradientColor(sr, rating);
-                fillPolygon(sr, verts);
+                v.visit(buildOctagonVertices(wx, wy, tileW, tileH), rating);
             }
         }
     }
 
-    private void drawRhombusOverlays(ShapeRenderer sr) {
+    private void forEachRhombusCell(CellVisitor v) {
         int mapH    = map.getProperties().get("height", Integer.class);
         int tileHpx = map.getProperties().get("tileheight", Integer.class);
         float mapHeightWorld = mapH * tileHpx * unitScale;
@@ -223,25 +256,39 @@ public class BotStrategyWidget {
             // y-flip + alignment offset — matches HoverDetector.checkDiamondHover
             float wy = mapHeightWorld - (tmo.getY() * unitScale) - dOffY + 2 * h + 4f;
 
-            float[] verts = buildDiamondVertices(wx, wy, w, h);
-            setGradientColor(sr, rating);
-            fillPolygon(sr, verts);
+            v.visit(buildDiamondVertices(wx, wy, w, h), rating);
         }
+    }
+
+    private void drawLabel(SpriteBatch batch, BitmapFont font, float[] verts, double rating, float scale) {
+        float[] c = new float[2];
+        centroidOf(verts, c);
+        String text = Integer.toString((int) Math.round(rating * 100));
+        font.getData().setScale(scale);
+        labelLayout.setText(font, text);
+        font.draw(batch, text, c[0] - labelLayout.width / 2f, c[1] + labelLayout.height / 2f);
     }
 
     /** triangle-fan fill from the polygon centroid — mirrors Main.renderHoverOverlay */
     private void fillPolygon(ShapeRenderer sr, float[] verts) {
         int n = verts.length / 2;
         if (n < 3) return;
-        float cx = 0, cy = 0;
-        for (int i = 0; i < verts.length; i += 2) { cx += verts[i]; cy += verts[i + 1]; }
-        cx /= n; cy /= n;
+        float[] c = new float[2];
+        centroidOf(verts, c);
         for (int i = 0; i < n; i++) {
             int j = (i + 1) % n;
-            sr.triangle(cx, cy,
+            sr.triangle(c[0], c[1],
                 verts[i * 2],     verts[i * 2 + 1],
                 verts[j * 2],     verts[j * 2 + 1]);
         }
+    }
+
+    private static void centroidOf(float[] verts, float[] out2) {
+        int n = verts.length / 2;
+        float cx = 0, cy = 0;
+        for (int i = 0; i < verts.length; i += 2) { cx += verts[i]; cy += verts[i + 1]; }
+        out2[0] = cx / n;
+        out2[1] = cy / n;
     }
 
     /** translucent red→yellow→green gradient; rating is clamped to [0, 1] */

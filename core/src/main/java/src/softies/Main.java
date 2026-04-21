@@ -252,7 +252,7 @@ public class Main extends ApplicationAdapter {
     private void renderGame() {
         renderTiles();
         renderDiamonds();
-        botStrategyWidget.drawOverlay(shapeRenderer);
+        botStrategyWidget.drawOverlayShapes(shapeRenderer);
         renderHoverOverlay();
         renderBoardText();
     }
@@ -309,6 +309,7 @@ public class Main extends ApplicationAdapter {
     private void renderBoardText() {
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
+        botStrategyWidget.drawOverlayLabels(batch, font);
         boardRenderer.render(batch, font, shapeRenderer, statusMessage);
         batch.end();
     }
