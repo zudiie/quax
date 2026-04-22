@@ -30,7 +30,7 @@ public class QuaxController {
     }
 
     /**
-     * kicks off the full game sequence — welcome screen, mode selection, then the loop
+     * kicks off the full game sequence - welcome screen, mode selection, then the loop
      * returns early if the player quits at any of the setup stages
      */
     public void launch() {
@@ -48,7 +48,7 @@ public class QuaxController {
     }
 
     /**
-     * the core game loop — renders the board, reads a move, validates it and switches turn
+     * the core game loop - renders the board, reads a move, validates it and switches turn
      * keeps going until the player types quit or running is set to false
      */
     private void runGameLoop() {
@@ -74,7 +74,7 @@ public class QuaxController {
                 }
                 switchTurn();
             } else {
-                // invalid or occupied — same player tries again
+                // invalid or occupied - same player tries again
                 System.out.println("system: turn remains with " + currentPlayer + " due to invalid move.");
             }
         }
@@ -105,7 +105,7 @@ public class QuaxController {
     }
 
     /**
-     * loops until the player types a valid mode — "human" or "bot"
+     * loops until the player types a valid mode - "human" or "bot"
      * exits the whole program if they type quit here
      * @return the chosen GameMode
      */

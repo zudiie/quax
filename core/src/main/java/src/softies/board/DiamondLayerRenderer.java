@@ -15,7 +15,7 @@ public class DiamondLayerRenderer {
     private final float unitScale;
 
     /**
-     * @param map       the loaded TiledMap — used to read map dimensions and the diamond layer
+     * @param map       the loaded TiledMap - used to read map dimensions and the diamond layer
      * @param unitScale pixel-to-world scale factor (0.25f)
      */
     public DiamondLayerRenderer(TiledMap map, float unitScale) {

@@ -3,17 +3,13 @@ package src.softies;
 import java.util.HashMap;
 import java.util.Map;
 
-// the model class for the quax board — owns all cell state and handles stone/rhombus placement
+// the model class for the quax board - owns all cell state and handles stone/rhombus placement
 // the board is an 11x11 grid of octagonal cells with rhombic connectors in the diagonal gaps
-//
-// IMPORTANT: octagonCells and rhombusCells are now INSTANCE fields (not static)
-// Previously they were static, which caused crashes on game restart because
-// new QuaxBoard() replaced the static references while old WinCheck objects still held stale pointers
 public class QuaxBoard {
 
     private final static int BOARD_SIZE = 11;
 
-    // instance fields — each QuaxBoard owns its own maps; safe to recreate on restart
+    // instance fields - each QuaxBoard owns its own maps; safe to recreate on restart
     private final Map<String, OctagonalCell> octagonCells;
     private final Map<String, RhombicCell>   rhombusCells;
 
@@ -37,7 +33,7 @@ public class QuaxBoard {
                 Point p = new Point(col, row);
                 String label = generateLabel(col, row);
                 octagonCells.put(label, new OctagonalCell(p, PlayerColour.EMPTY, CellType.OCTAGON));
-                // rhombus cells sit in the diagonal gaps — only where both neighbours exist
+                // rhombus cells sit in the diagonal gaps - only where both neighbours exist
                 if (col < BOARD_SIZE - 1 && row > 1) {
                     rhombusCells.put("R-" + label, new RhombicCell(p, PlayerColour.EMPTY, CellType.RHOMBUS));
                 }

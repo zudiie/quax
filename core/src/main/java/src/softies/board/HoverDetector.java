@@ -19,7 +19,7 @@ public class HoverDetector {
     private final float unitScale;
     private final Viewport viewport;
 
-    // GIDs that represent playable octagon tiles — blank surrounds have different IDs
+    // GIDs that represent playable octagon tiles - blank surrounds have different IDs
     private static final int GID_EMPTY_OCT = 5;
     private static final int GID_BLACK_OCT = 6;
     private static final int GID_WHITE_OCT = 7;
@@ -28,7 +28,7 @@ public class HoverDetector {
     // increase if the highlight outline doesn't align with the tile art
     private static final float OCT_CUT = 0.25f;
 
-    // what shape is under the mouse — NONE when not hovering any playable cell
+    // what shape is under the mouse - NONE when not hovering any playable cell
     public enum HoverShape { NONE, OCTAGON, RHOMBUS }
     private HoverShape hoverShape    = HoverShape.NONE;
 
@@ -36,7 +36,7 @@ public class HoverDetector {
     private float[]    hoverVertices = new float[0];
 
     /**
-     * @param map          the loaded TiledMap — used to read height/tileheight properties
+     * @param map          the loaded TiledMap - used to read height/tileheight properties
      * @param octagonLayer the octagon tile layer
      * @param diamondLayer the diamond (rhombus) object layer
      * @param unitScale    pixel-to-world scale factor (0.25f)
@@ -62,7 +62,7 @@ public class HoverDetector {
         hoverVertices = new float[0];
 
         Vector3 pos = unprojectMouse(screenX, screenY);
-        if (checkDiamondHover(pos)) return; // diamonds checked first — they're on top visually
+        if (checkDiamondHover(pos)) return; // diamonds checked first - they're on top visually
         checkOctagonHover(pos);
     }
 

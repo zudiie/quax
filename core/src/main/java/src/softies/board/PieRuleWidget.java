@@ -28,7 +28,7 @@ public class PieRuleWidget {
     private float bannerTimer = 0f;
     private static final float BANNER_DURATION = 3.5f;
 
-    // button colours — matches QuitWidget theme
+    // button colours - matches QuitWidget theme
     private static final Color BTN_IDLE  = new Color(0.14f, 0.24f, 0.62f, 1f);
     private static final Color BTN_HOVER = new Color(0.22f, 0.36f, 0.80f, 1f);
     private static final Color GOLD      = new Color(0.82f, 0.67f, 0.12f, 1f);
@@ -46,7 +46,7 @@ public class PieRuleWidget {
 
     /**
      * recomputes the button rectangle from the current camera position
-     * positioned to the left of the quit button — call every frame before draw/handleInput
+     * positioned to the left of the quit button - call every frame before draw/handleInput
      */
     public void updateBounds() {
         if (!gameState.isPieRuleAvailable()) {
@@ -61,7 +61,7 @@ public class PieRuleWidget {
     }
 
     /**
-     * ticks the banner countdown — call every frame with getDeltaTime()
+     * ticks the banner countdown - call every frame with getDeltaTime()
      */
     public void update(float delta) {
         if (bannerTimer > 0f) bannerTimer -= delta;
@@ -69,7 +69,7 @@ public class PieRuleWidget {
 
     /**
      * draws the button (when available) and the activation banner (when recently used)
-     * manages batch begin/end internally — do not call with an active batch
+     * manages batch begin/end internally - do not call with an active batch
      */
     public void draw(ShapeRenderer sr, SpriteBatch batch, BitmapFont font) {
         Vector3 mouse = getMouseWorldPos();
@@ -151,7 +151,7 @@ public class PieRuleWidget {
         Gdx.gl.glDisable(GL20.GL_BLEND); // re-enabled inside batch.begin/end via BlendFunc
         batch.begin();
         font.setColor(1f, 1f, 1f, alpha);
-        String msg = "Pie Rule Activated — Colours Swapped! WHITE to play.";
+        String msg = "Pie Rule Activated - Colours Swapped! WHITE to play.";
         GlyphLayout gl = new GlyphLayout(font, msg);
         font.draw(batch, msg,
             worldLeft + (viewport.getWorldWidth() - gl.width)  / 2f,
@@ -162,7 +162,7 @@ public class PieRuleWidget {
     }
 
     /**
-     * processes a click — activates the pie rule and starts the banner if the button was hit
+     * processes a click - activates the pie rule and starts the banner if the button was hit
      * @return true if the button was clicked and consumed the input
      */
     public boolean handleInput(Vector3 touchPos) {
@@ -172,6 +172,15 @@ public class PieRuleWidget {
             return true;
         }
         return false;
+    }
+
+    /**
+     * starts the activation banner without a click - called by Main when the bot
+     * activates the pie rule programmatically so the player sees the same visual
+     * confirmation that appears when a human clicks the button
+     */
+    public void showBanner() {
+        bannerTimer = BANNER_DURATION;
     }
 
     private Vector3 getMouseWorldPos() {

@@ -21,11 +21,11 @@ import src.softies.PlayerColour;
 //   bot wins   → "Better luck next time!"
 //
 // two buttons are shown:
-//   "Play Again" — signals RESTART to Main, which resets the board without exiting
-//   "Quit"       — exits the application
+//   "Play Again" - signals RESTART to Main, which resets the board without exiting
+//   "Quit"       - exits the application
 public class WinOverlay {
 
-    // what the user clicked — returned from handleInput() so Main can react
+    // what the user clicked - returned from handleInput() so Main can react
     public enum Action { NONE, RESTART, QUIT }
 
     private final OrthographicCamera camera;
@@ -39,15 +39,15 @@ public class WinOverlay {
     private static final Color GOLD_BORDER = new Color(0.82f, 0.67f, 0.12f, 1f);
     private static final Color NEAR_BLACK  = new Color(0.10f, 0.10f, 0.10f, 1f);
 
-    // "Play Again" — green
+    // "Play Again" - green
     private static final Color BTN_PLAY_IDLE  = new Color(0.10f, 0.38f, 0.10f, 1f);
     private static final Color BTN_PLAY_HOVER = new Color(0.16f, 0.56f, 0.16f, 1f);
 
-    // "Quit" — dark red
+    // "Quit" - dark red
     private static final Color BTN_QUIT_IDLE  = new Color(0.38f, 0.07f, 0.07f, 1f);
     private static final Color BTN_QUIT_HOVER = new Color(0.58f, 0.13f, 0.13f, 1f);
 
-    // button rectangles — set during draw(), used for hit-testing in handleInput()
+    // button rectangles - set during draw(), used for hit-testing in handleInput()
     private Rectangle playAgainBounds;
     private Rectangle quitBounds;
 
@@ -66,8 +66,8 @@ public class WinOverlay {
      * draws the full-width win banner centred on the visible screen
      * temporarily ends the active batch to draw ShapeRenderer backgrounds, then restarts it
      *
-     * @param batch         active SpriteBatch — ended and restarted internally
-     * @param shapeRenderer for backgrounds and borders — must not be mid-begin
+     * @param batch         active SpriteBatch - ended and restarted internally
+     * @param shapeRenderer for backgrounds and borders - must not be mid-begin
      * @param font          font for all banner text
      * @param winner        the colour that won
      */
@@ -109,10 +109,10 @@ public class WinOverlay {
         // banner background
         sr.setColor(WIN_BG);
         sr.rect(bX, bY, bW, BANNER_H);
-        // Play Again button — green, brightens on hover
+        // Play Again button - green, brightens on hover
         sr.setColor(playAgainBounds.contains(mouse.x, mouse.y) ? BTN_PLAY_HOVER : BTN_PLAY_IDLE);
         sr.rect(playAgainBounds.x, playAgainBounds.y, playAgainBounds.width, playAgainBounds.height);
-        // Quit button — dark red, brightens on hover
+        // Quit button - dark red, brightens on hover
         sr.setColor(quitBounds.contains(mouse.x, mouse.y) ? BTN_QUIT_HOVER : BTN_QUIT_IDLE);
         sr.rect(quitBounds.x, quitBounds.y, quitBounds.width, quitBounds.height);
         sr.end();
@@ -134,13 +134,13 @@ public class WinOverlay {
      */
     private void drawText(SpriteBatch batch, BitmapFont font,
                           PlayerColour winner, float bX, float bY, float bW) {
-        // headline — e.g. "BLACK wins!"
+        // headline - e.g. "BLACK wins!"
         String headline = winner + " wins!";
         GlyphLayout hl = new GlyphLayout(font, headline);
         font.setColor(winner == PlayerColour.BLACK ? NEAR_BLACK : Color.WHITE);
         font.draw(batch, headline, bX + (bW - hl.width) / 2f, bY + BANNER_H - 22f);
 
-        // sub-message — differs based on whether the bot or the human won
+        // sub-message - differs based on whether the bot or the human won
         boolean botWon = (winner == gameState.getBotColour());
         String sub = botWon ? "Better luck next time!" : "Congratulations!";
         font.setColor(Color.WHITE);
@@ -157,7 +157,7 @@ public class WinOverlay {
 
     /**
      * processes a click in world space and returns what was clicked
-     * called every touch event — returns NONE if neither button was hit
+     * called every touch event - returns NONE if neither button was hit
      *
      * @param touchPos world-space position of the click
      * @return RESTART if "Play Again" was clicked, QUIT if "Quit" was clicked, NONE otherwise

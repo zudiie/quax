@@ -1,6 +1,6 @@
 package src.softies;
 
-// handles everything printed to the terminal — menus, headers, and the board itself
+// handles everything printed to the terminal - menus, headers, and the board itself
 // this is purely a view class, it doesn't change any game state
 public class GameDisplay {
 
@@ -51,7 +51,7 @@ public class GameDisplay {
     }
 
     /**
-     * prints a prefixed message to the terminal — used for prompts and errors
+     * prints a prefixed message to the terminal - used for prompts and errors
      * @param message the text to display, prefixed with ">>"
      */
     public void showMessage(String message) {
@@ -113,7 +113,7 @@ public class GameDisplay {
             }
             System.out.println();
 
-            // rhombus row sits between octagon rows — skip it below the bottom row
+            // rhombus row sits between octagon rows - skip it below the bottom row
             if (i > 1) {
                 System.out.print("         ");
                 for (int col = 0; col < size - 1; col++) {

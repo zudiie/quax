@@ -14,7 +14,6 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 
 // the in-game quit button (bottom-right corner) and the shared confirmation dialog
 // the dialog can also be opened from the welcome screen via triggerConfirm()
-// No (cancel) is on the LEFT in dark red; Yes (quit) is on the RIGHT in dark green
 public class QuitWidget {
 
     private final WorldCalculator world;
@@ -26,8 +25,8 @@ public class QuitWidget {
     private boolean showConfirm = false;
 
     private Rectangle quitBounds;
-    private Rectangle noBounds;   // LEFT — cancel
-    private Rectangle yesBounds;  // RIGHT — confirm quit
+    private Rectangle noBounds;   // LEFT - cancel
+    private Rectangle yesBounds;  // RIGHT - confirm quit
 
     private static final float OFFSET_Z = 300f;
 
@@ -81,7 +80,7 @@ public class QuitWidget {
 
     /**
      * draws the quit button and the confirmation dialog (if open)
-     * manages batch begin/end internally — do not call with an active batch
+     * manages batch begin/end internally - do not call with an active batch
      */
     public void draw(ShapeRenderer sr, SpriteBatch batch, BitmapFont font) {
         Vector3 mouse = getMouseWorldPos();
@@ -141,11 +140,11 @@ public class QuitWidget {
         sr.setColor(DIALOG_BG);
         sr.rect(dX, dY, dW, dH);
 
-        // No — dark red, left
+        // No - dark red, left
         sr.setColor(noBounds != null && noBounds.contains(mouse.x, mouse.y) ? NO_HOVER : NO_IDLE);
         sr.rect(noX, bY, bW, bH);
 
-        // Yes — dark green, right
+        // Yes - dark green, right
         sr.setColor(yesBounds != null && yesBounds.contains(mouse.x, mouse.y) ? YES_HOVER : YES_IDLE);
         sr.rect(yesX, bY, bW, bH);
         sr.end();
@@ -186,7 +185,7 @@ public class QuitWidget {
     }
 
     /**
-     * processes a click — returns true if this widget consumed it
+     * processes a click - returns true if this widget consumed it
      * the confirmation dialog eats ALL clicks while open
      */
     public boolean handleInput(Vector3 touchPos) {

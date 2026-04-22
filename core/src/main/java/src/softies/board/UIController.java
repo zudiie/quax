@@ -12,12 +12,8 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
-// NOTE: this class is superseded by WelcomeScreen, QuitWidget and PieRuleWidget
-// it is kept only to satisfy compilation — Main.java no longer instantiates it
-// the swapFirstTileColour() call has been removed because:
-//   - the pie rule works by swapping player colour assignments, not tile graphics
-//   - the first tile was placed as BLACK; after the swap Player 2 is BLACK and owns it
-//   - so the tile correctly stays BLACK in both the model and the visual
+// this class is superseded by WelcomeScreen, QuitWidget and PieRuleWidget
+// it is kept only to satisfy compilation - Main.java no longer instantiates it
 public class UIController {
 
     private final Viewport viewport;
@@ -55,7 +51,7 @@ public class UIController {
     public void setInGame(boolean inGame)  { this.inGame = inGame; }
     public void triggerQuitConfirm()       { showQuitConfirm = true; }
 
-    // kept for source-level compatibility — no longer used by Main
+    // no longer used by Main
     public void setInputHandler(InputHandler inputHandler) { /* no-op */ }
 
     public void updateBounds() {
@@ -137,10 +133,10 @@ public class UIController {
             // dialog background
             sr.setColor(DIALOG_BG);
             sr.rect(dX, dY, dW, dH);
-            // No button — dark red, left
+            // No button - dark red, left
             sr.setColor(noButtonBounds  != null && noButtonBounds.contains(mouse.x,  mouse.y) ? NO_HOVER  : NO_IDLE);
             sr.rect(noX, bY, bW, bH);
-            // Yes button — dark green, right
+            // Yes button - dark green, right
             sr.setColor(yesButtonBounds != null && yesButtonBounds.contains(mouse.x, mouse.y) ? YES_HOVER : YES_IDLE);
             sr.rect(yesX, bY, bW, bH);
             sr.end();
@@ -200,7 +196,7 @@ public class UIController {
             return true; // swallow all clicks while dialog is open
         }
         if (pieRuleButtonBounds != null && pieRuleButtonBounds.contains(touchPos.x, touchPos.y)) {
-            // swap player colour assignments only — do NOT touch the tile graphic
+            // swap player colour assignments only - do NOT touch the tile graphic
             // the first stone stays BLACK because after the swap Player 2 now IS BLACK
             gameState.activatePieRule();
             return true;

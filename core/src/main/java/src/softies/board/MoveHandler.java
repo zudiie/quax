@@ -16,14 +16,6 @@ import java.util.Map;
 
 // processes board clicks and programmatic bot moves
 // updates the board model AND the visual tiles, then checks for a win
-//
-// BOT RHOMBUS FIX — the constructor pre-builds a Map<rhombusKey, TextureMapObject>
-// by iterating the diamond layer once.  All bot rhombus placements then use this map
-// for an O(1), exact lookup — no floating-point pixel recalculation that can drift.
-//
-// ROUTING — placeBotMove() checks startsWith("R-") to route correctly.
-// placeBotOctagon() also guards against rhombus labels so a stale cached
-// call can never cause a NumberFormatException.
 public class MoveHandler {
 
     private final TiledMap map;
@@ -39,7 +31,7 @@ public class MoveHandler {
     // built once in the constructor so bot placement never has to scan the full layer
     private final Map<String, TextureMapObject> rhombusKeyToTMO = new HashMap<>();
 
-    // tile GIDs — must match the tileset order in PolygonalGrid.tmx
+    // tile GIDs - must match the tileset order in PolygonalGrid.tmx
     private static final int GID_EMPTY_OCT = 5;
     private static final int GID_WHITE_OCT = 6; // white octagonal stone
     private static final int GID_BLACK_OCT = 7; // black octagonal stone
@@ -62,7 +54,7 @@ public class MoveHandler {
      * @param unitScale    pixel-to-world scale factor (0.25f)
      * @param gameState    tracks the current player, first-move flag and winner
      * @param viewport     converts screen coords to world coords
-     * @param boardLogic   the board model — updated on every successful placement
+     * @param boardLogic   the board model - updated on every successful placement
      */
     public MoveHandler(TiledMap map, TiledMapTileLayer octagonLayer, MapLayer diamondLayer,
                        float unitScale, GameState gameState, Viewport viewport, QuaxBoard boardLogic) {
@@ -81,7 +73,7 @@ public class MoveHandler {
     /**
      * iterates the diamond layer once and maps each rhombus board key to its TMO
      * uses the same pixel formula as human click detection to derive the key
-     * called once in the constructor — never needs to repeat
+     * called once in the constructor - never needs to repeat
      */
     private void buildRhombusKeyMap() {
         for (MapObject obj : diamondLayer.getObjects()) {
@@ -107,7 +99,7 @@ public class MoveHandler {
     // -------------------------------------------------------------------------
 
     /**
-     * processes a raw screen click — tries diamond layer first, then octagon tiles
+     * processes a raw screen click - tries diamond layer first, then octagon tiles
      */
     public Result handleClick(int screenX, int screenY) {
         if (gameState.isGameOver()) return Result.NOT_A_CELL;
@@ -119,7 +111,7 @@ public class MoveHandler {
     }
 
     // -------------------------------------------------------------------------
-    // bot placement — programmatic, no screen click needed
+    // bot placement - programmatic, no screen click needed
     // -------------------------------------------------------------------------
 
     /**
@@ -150,12 +142,12 @@ public class MoveHandler {
      * converts the label to tile-grid coordinates (inverse of deriveOctagonLabel)
      *
      * GUARD: if this method somehow receives an "R-" label it returns NOT_A_CELL
-     * rather than throwing NumberFormatException — this makes it crash-safe
+     * rather than throwing NumberFormatException - this makes it crash-safe
      */
     private Result placeBotOctagon(String cellLabel) {
-        // defensive guard — rhombus labels must never reach here
+        // defensive guard - rhombus labels must never reach here
         if (cellLabel.startsWith("R-")) {
-            System.err.println("placeBotOctagon received rhombus label: " + cellLabel + " — ignoring");
+            System.err.println("placeBotOctagon received rhombus label: " + cellLabel + " - ignoring");
             return Result.NOT_A_CELL;
         }
 
@@ -188,7 +180,7 @@ public class MoveHandler {
 
     /**
      * places a bot rhombus using the pre-built key → TMO map
-     * O(1) lookup — no pixel math, no iteration, no floating-point drift
+     * O(1) lookup - no pixel math, no iteration, no floating-point drift
      */
     private Result placeBotRhombus(String rhombusKey) {
         TextureMapObject tmo = rhombusKeyToTMO.get(rhombusKey);
@@ -200,7 +192,7 @@ public class MoveHandler {
     }
 
     // -------------------------------------------------------------------------
-    // diamond (rhombus) helpers — shared by human click and bot placement
+    // diamond (rhombus) helpers - shared by human click and bot placement
     // -------------------------------------------------------------------------
 
     /** scans the diamond layer for a TMO hit by the given world-space click position */

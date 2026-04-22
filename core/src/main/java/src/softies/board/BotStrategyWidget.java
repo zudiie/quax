@@ -23,9 +23,21 @@ import src.softies.QuaxBoard;
 
 import java.util.Map;
 
-// toggleable heat-map showing how the bot rates every empty cell at the current turn
-// only visible in Human-vs-Bot mode; button sits left of the pie rule button (when up) or left of quit
-// ratings come from BotPlayer.rateAllMoves() and are cached until invalidate() is called
+// toggleable heat-map overlay that shows how the bot rates every empty cell
+// only visible in Human-vs-Bot mode; the toggle button sits left of the quit button
+//
+// HEAT MAP COLOURS:
+//   Green  = bot rates this cell highly (good path position or winning move)
+//   Yellow = moderate priority (reasonable path but not optimal)
+//   Red    = low priority (far from the winning route or blocked)
+// NUMBER LABELS:
+//   Each coloured cell shows a 0–100% score.  100 = the bot wants this cell most.
+//   The score is derived from Dijkstra path costs: cells on the shortest crossing
+//   route score highest; unreachable or impassable cells score 0.
+//
+// STRATEGY EXPLANATION:
+//   drawExplanation() renders a brief text summary in the right panel
+//   while the overlay is active - call it from Main.renderBoardText()
 public class BotStrategyWidget {
 
     private final BotPlayer botPlayer;
@@ -37,35 +49,40 @@ public class BotStrategyWidget {
     private final Viewport viewport;
     private final OrthographicCamera camera;
 
-    private boolean enabled = false;
-    private Rectangle bounds = null;
+    private boolean enabled      = false;
+    private Rectangle bounds     = null;
     private Map<String, Double> cachedRatings = null;
-    private boolean dirty = true;
+    private boolean dirty        = true;
 
     private final GlyphLayout labelLayout = new GlyphLayout();
 
     @FunctionalInterface
     private interface CellVisitor { void visit(float[] verts, double rating); }
 
-    // must match HoverDetector / MoveHandler
-    private static final int GID_EMPTY_OCT = 5;
-    private static final float OCT_CUT = 0.25f;
+    private static final int   GID_EMPTY_OCT  = 5;
+    private static final float OCT_CUT        = 0.25f;
 
-    // button theme matches QuitWidget / PieRuleWidget
+    // button colours - matches QuitWidget / PieRuleWidget theme
     private static final Color BTN_IDLE  = new Color(0.14f, 0.24f, 0.62f, 1f);
     private static final Color BTN_HOVER = new Color(0.22f, 0.36f, 0.80f, 1f);
     private static final Color GOLD      = new Color(0.82f, 0.67f, 0.12f, 1f);
 
-    private static final float OVERLAY_ALPHA = 0.28f;
-
-    private static final float LABEL_MIN_RATING = 0.40f;
-    private static final float LABEL_FONT_SCALE_OCTAGON = 0.12f;
-    private static final float LABEL_FONT_SCALE_RHOMBUS = 0.10f;
-    private static final float DEFAULT_FONT_SCALE = 0.2f;
+    // slightly higher alpha than before for better visibility
+    private static final float OVERLAY_ALPHA         = 0.36f;
+    private static final float LABEL_MIN_RATING      = 0.35f;
+    private static final float LABEL_FONT_SCALE_OCT  = 0.10f;   // slightly smaller labels
+    private static final float LABEL_FONT_SCALE_RHO  = 0.09f;
+    private static final float DEFAULT_FONT_SCALE    = 0.20f;
 
     private static final float BTN_W   = 190f;
-    private static final float BTN_H   = 44f;
-    private static final float BTN_GAP = 14f;
+    private static final float BTN_H   =  44f;
+    private static final float BTN_GAP =  14f;
+
+    // explanation text colours
+    private static final Color EXP_HEADER = new Color(0.90f, 0.80f, 0.25f, 1f);  // gold
+    private static final Color EXP_GREEN  = new Color(0.35f, 0.95f, 0.35f, 1f);
+    private static final Color EXP_YELLOW = new Color(0.95f, 0.95f, 0.35f, 1f);
+    private static final Color EXP_RED    = new Color(0.95f, 0.35f, 0.35f, 1f);
 
     public BotStrategyWidget(BotPlayer botPlayer, GameState gameState,
                              TiledMap map, TiledMapTileLayer octagonLayer, MapLayer diamondLayer,
@@ -80,35 +97,31 @@ public class BotStrategyWidget {
         this.camera       = camera;
     }
 
-    /** called after every board placement so the cache is recomputed on the next draw */
-    public void invalidate() {
-        dirty = true;
-    }
+    /** call after every board placement so the cache is recomputed on the next draw */
+    public void invalidate() { dirty = true; }
 
     /**
-     * recomputes the button rectangle — call every frame before draw()
-     * the button is hidden while the welcome screen is up, in Human-vs-Human mode,
-     * or once the game is over
+     * recomputes the button rectangle every frame
+     * hidden while the welcome screen is shown, outside HvB mode, or after game over
      */
     public void updateBounds(boolean showWelcome) {
         if (showWelcome
-         || gameState.getGameMode() != GameMode.HUMAN_VS_BOT
-         || gameState.isGameOver()) {
+            || gameState.getGameMode() != GameMode.HUMAN_VS_BOT
+            || gameState.isGameOver()) {
             bounds = null;
             return;
         }
         float worldRight  = camera.position.x + viewport.getWorldWidth()  / 2;
         float worldBottom = camera.position.y - viewport.getWorldHeight() / 2;
-        // quit button left edge (quit is 90 wide, 20px from right)
-        float quitLeft = worldRight - 90 - 20;
-        // if pie rule button is up, the bot-strategy button sits to its left; otherwise beside quit
-        float anchorLeft = gameState.isPieRuleAvailable()
+        float quitLeft    = worldRight - 90 - 20;
+        // anchor: if pie rule button is also visible, sit further left; otherwise beside quit
+        float anchorLeft  = gameState.isPieRuleAvailable()
             ? quitLeft - BTN_W - BTN_GAP
             : quitLeft;
         bounds = new Rectangle(anchorLeft - BTN_W - BTN_GAP, worldBottom + 20, BTN_W, BTN_H);
     }
 
-    /** draws the toggle button — manages batch begin/end internally */
+    /** draws the Show/Hide Strategy toggle button - manages batch begin/end internally */
     public void draw(ShapeRenderer sr, SpriteBatch batch, BitmapFont font) {
         if (bounds == null) return;
 
@@ -141,8 +154,8 @@ public class BotStrategyWidget {
     }
 
     /**
-     * draws the translucent heat-map overlay over every non-occupied cell
-     * no-op when the toggle is off — must be called while ShapeRenderer is idle
+     * draws the translucent heat-map over every unoccupied cell
+     * no-op when the toggle is off - call before batch begins
      */
     public void drawOverlayShapes(ShapeRenderer sr) {
         if (!enabled) return;
@@ -161,8 +174,8 @@ public class BotStrategyWidget {
     }
 
     /**
-     * draws the numerical weight label on each heat-map cell with rating >= LABEL_MIN_RATING
-     * no-op when the toggle is off — must be called while SpriteBatch is active
+     * draws the numerical score labels on cells with rating >= LABEL_MIN_RATING
+     * no-op when toggle is off - call while SpriteBatch is active
      */
     public void drawOverlayLabels(SpriteBatch batch, BitmapFont font) {
         if (!enabled) return;
@@ -171,16 +184,76 @@ public class BotStrategyWidget {
         try {
             font.setColor(Color.WHITE);
             forEachOctagonCell((verts, rating) -> {
-                if (rating >= LABEL_MIN_RATING) drawLabel(batch, font, verts, rating, LABEL_FONT_SCALE_OCTAGON);
+                if (rating >= LABEL_MIN_RATING)
+                    drawLabel(batch, font, verts, rating, LABEL_FONT_SCALE_OCT);
             });
             forEachRhombusCell((verts, rating) -> {
-                if (rating >= LABEL_MIN_RATING) drawLabel(batch, font, verts, rating, LABEL_FONT_SCALE_RHOMBUS);
+                if (rating >= LABEL_MIN_RATING)
+                    drawLabel(batch, font, verts, rating, LABEL_FONT_SCALE_RHO);
             });
         } finally {
-            // always restore — downstream text draws depend on the default scale
-            font.getData().setScale(DEFAULT_FONT_SCALE);
+            font.getData().setScale(DEFAULT_FONT_SCALE); // always restore default
         }
     }
+
+    /**
+     * draws a brief explanation of the heat map in the right-side panel
+     * call this from Main.renderBoardText() while the SpriteBatch is active
+     * only renders when the strategy overlay is enabled
+     *
+     * the text is positioned below the PLAYERS section in the side panel,
+     * using board geometry derived from the map properties
+     */
+    public void drawExplanation(SpriteBatch batch, BitmapFont font) {
+        if (!enabled) return;
+        ensureRatingsFresh();
+
+        // right panel x: same formula used by SidePanelRenderer (boardMaxX + 40)
+        int tileW  = octagonLayer.getTileWidth();
+        float boardMaxX = (5 + 11) * tileW * unitScale; // board occupies cols 5-15 in TMX
+        float x = boardMaxX + 40f;
+
+        // anchor vertically to camera so the legend is always fully visible
+        // place the top of the legend 280 units above worldBottom
+        // (button row sits at worldBottom+20..+64, so +280 gives ample clearance)
+        float worldBottom = camera.position.y - viewport.getWorldHeight() / 2f;
+        float startY  = worldBottom + 310f;
+        float spacing = 25f;
+
+        // - header -
+        font.setColor(EXP_HEADER);
+        font.draw(batch, "STRATEGY HEAT MAP", x, startY);
+
+        // - colour key (4 lines) -
+        font.setColor(EXP_GREEN);
+        font.draw(batch, "Green  = high priority",   x, startY - spacing);
+
+        font.setColor(EXP_YELLOW);
+        font.draw(batch, "Yellow = medium priority",  x, startY - spacing * 2);
+
+        font.setColor(EXP_RED);
+        font.draw(batch, "Red    = low priority",     x, startY - spacing * 3);
+
+        font.setColor(Color.WHITE);
+        font.draw(batch, "Number = score (0-100%)",   x, startY - spacing * 4);
+
+        // - one-line algorithm summary (replaces the 5 truncated lines) -
+        font.setColor(new Color(0.78f, 0.78f, 0.78f, 1f));
+        font.draw(batch, "Via: Dijkstra path costs",  x, startY - spacing * 5.3f);
+
+        font.setColor(Color.WHITE);
+    }
+
+    /** processes a click - toggles the overlay if the button was hit */
+    public boolean handleInput(Vector3 touchPos) {
+        if (bounds == null || !bounds.contains(touchPos.x, touchPos.y)) return false;
+        enabled = !enabled;
+        return true;
+    }
+
+    // -------------------------------------------------------------------------
+    // overlay rendering helpers
+    // -------------------------------------------------------------------------
 
     private void ensureRatingsFresh() {
         if (dirty || cachedRatings == null) {
@@ -188,18 +261,6 @@ public class BotStrategyWidget {
             dirty = false;
         }
     }
-
-    /** processes a click — flips the toggle if the button was hit */
-    public boolean handleInput(Vector3 touchPos) {
-        if (bounds == null) return false;
-        if (!bounds.contains(touchPos.x, touchPos.y)) return false;
-        enabled = !enabled;
-        return true;
-    }
-
-    // -------------------------------------------------------------------------
-    // overlay rendering
-    // -------------------------------------------------------------------------
 
     private void forEachOctagonCell(CellVisitor v) {
         int mapH = map.getProperties().get("height", Integer.class);
@@ -212,12 +273,11 @@ public class BotStrategyWidget {
                 if (cell == null || cell.getTile() == null) continue;
                 if (cell.getTile().getId() != GID_EMPTY_OCT) continue;
 
-                // inverse of MoveHandler.placeBotOctagon tile→label mapping
                 int boardCol = cellX - 5;
                 int boardRow = cellY - mapH + 16;
                 if (boardCol < 0 || boardCol >= 11 || boardRow < 1 || boardRow > 11) continue;
 
-                String label = QuaxBoard.generateLabel(boardCol, boardRow);
+                String label  = QuaxBoard.generateLabel(boardCol, boardRow);
                 Double rating = cachedRatings.get(label);
                 if (rating == null) continue;
 
@@ -229,7 +289,7 @@ public class BotStrategyWidget {
     }
 
     private void forEachRhombusCell(CellVisitor v) {
-        int mapH    = map.getProperties().get("height", Integer.class);
+        int mapH    = map.getProperties().get("height",     Integer.class);
         int tileHpx = map.getProperties().get("tileheight", Integer.class);
         float mapHeightWorld = mapH * tileHpx * unitScale;
 
@@ -241,7 +301,6 @@ public class BotStrategyWidget {
             TextureMapObject tmo = (TextureMapObject) obj;
             if (tmo.getProperties().containsKey("occupied")) continue;
 
-            // MoveHandler.buildRhombusKeyMap — the canonical key formula
             int colGap = Math.round((tmo.getX() + 40) / 128f) - 6;
             int row    = 17 - Math.round((tmo.getY() - 40) / 128f);
             if (colGap < 0 || colGap > 9 || row < 2 || row > 11) continue;
@@ -253,14 +312,14 @@ public class BotStrategyWidget {
             float w  = tmo.getProperties().get("width",  Float.class) * unitScale;
             float h  = tmo.getProperties().get("height", Float.class) * unitScale;
             float wx = tmo.getX() * unitScale + dOffX;
-            // y-flip + alignment offset — matches HoverDetector.checkDiamondHover
             float wy = mapHeightWorld - (tmo.getY() * unitScale) - dOffY + 2 * h + 4f;
 
             v.visit(buildDiamondVertices(wx, wy, w, h), rating);
         }
     }
 
-    private void drawLabel(SpriteBatch batch, BitmapFont font, float[] verts, double rating, float scale) {
+    private void drawLabel(SpriteBatch batch, BitmapFont font,
+                           float[] verts, double rating, float scale) {
         float[] c = new float[2];
         centroidOf(verts, c);
         String text = Integer.toString((int) Math.round(rating * 100));
@@ -269,7 +328,7 @@ public class BotStrategyWidget {
         font.draw(batch, text, c[0] - labelLayout.width / 2f, c[1] + labelLayout.height / 2f);
     }
 
-    /** triangle-fan fill from the polygon centroid — mirrors Main.renderHoverOverlay */
+    /** triangle-fan fill from polygon centroid - mirrors Main.renderHoverOverlay */
     private void fillPolygon(ShapeRenderer sr, float[] verts) {
         int n = verts.length / 2;
         if (n < 3) return;
@@ -278,32 +337,33 @@ public class BotStrategyWidget {
         for (int i = 0; i < n; i++) {
             int j = (i + 1) % n;
             sr.triangle(c[0], c[1],
-                verts[i * 2],     verts[i * 2 + 1],
-                verts[j * 2],     verts[j * 2 + 1]);
+                verts[i*2], verts[i*2+1],
+                verts[j*2], verts[j*2+1]);
         }
     }
 
     private static void centroidOf(float[] verts, float[] out2) {
         int n = verts.length / 2;
         float cx = 0, cy = 0;
-        for (int i = 0; i < verts.length; i += 2) { cx += verts[i]; cy += verts[i + 1]; }
+        for (int i = 0; i < verts.length; i += 2) { cx += verts[i]; cy += verts[i+1]; }
         out2[0] = cx / n;
         out2[1] = cy / n;
     }
 
-    /** translucent red→yellow→green gradient; rating is clamped to [0, 1] */
+    /**
+     * maps a normalised rating [0,1] to a red → yellow → green gradient
+     * higher rating = greener (better for the bot)
+     */
     private void setGradientColor(ShapeRenderer sr, double rating) {
         float t = (float) Math.max(0.0, Math.min(1.0, rating));
         float r, g;
-        if (t < 0.5f) { r = 1f;          g = t * 2f; }
-        else          { r = 2f - t * 2f; g = 1f;     }
+        if (t < 0.5f) { r = 1f;          g = t * 2f;      }
+        else           { r = 2f - t * 2f; g = 1f;          }
         sr.setColor(r, g, 0f, OVERLAY_ALPHA);
     }
 
-    /** same 8-point octagon as HoverDetector.buildOctagonVertices */
     private static float[] buildOctagonVertices(float x, float y, float w, float h) {
-        float cx = w * OCT_CUT;
-        float cy = h * OCT_CUT;
+        float cx = w * OCT_CUT, cy = h * OCT_CUT;
         return new float[]{
             x + cx,     y,
             x + w - cx, y,
@@ -316,19 +376,13 @@ public class BotStrategyWidget {
         };
     }
 
-    /** same 4-point diamond as HoverDetector.buildDiamondVertices */
     private static float[] buildDiamondVertices(float x, float y, float w, float h) {
-        return new float[]{
-            x + w / 2, y,
-            x + w,     y + h / 2,
-            x + w / 2, y + h,
-            x,         y + h / 2
-        };
+        return new float[]{ x + w/2, y, x + w, y + h/2, x + w/2, y + h, x, y + h/2 };
     }
 
     private Vector3 getMouseWorldPos() {
-        Vector3 mouse = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-        viewport.unproject(mouse);
-        return mouse;
+        Vector3 m = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+        viewport.unproject(m);
+        return m;
     }
 }

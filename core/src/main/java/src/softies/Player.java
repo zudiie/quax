@@ -1,6 +1,6 @@
 package src.softies;
 
-// the base player class — holds whether this player is human or a bot, plus their colour
+// the base player class - holds whether this player is human or a bot, plus their colour
 // HumanPlayer extends behaviour from this, and a bot player would too eventually
 public class Player {
 
