@@ -11,6 +11,7 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFont
 public class FontLoader {
 
     // file name of the font to load from assets
+    //private static final String FONT_FILE = "CormorantGaramond-Bold.ttf";
     private static final String FONT_FILE = "SF-Pro-Display-Bold.ttf";
 
     // characters that must be present - DEFAULT_CHARS covers A-Z, 0-9, punctuation etc.
@@ -37,9 +38,18 @@ public class FontLoader {
      */
     public static BitmapFont loadWelcomeFont() {
         FreeTypeFontGenerator gen = new FreeTypeFontGenerator(Gdx.files.internal(FONT_FILE));
-        FreeTypeFontParameter p   = buildParams(110, 7);
+        FreeTypeFontParameter p   = buildParams(220, 2);
         BitmapFont font = gen.generateFont(p);
-        font.getData().setScale(0.2f);
+        font.getData().setScale(0.1f);
+        gen.dispose();
+        return font;
+    }
+
+    public static BitmapFont loadWelcomeMiniFont() {
+        FreeTypeFontGenerator gen = new FreeTypeFontGenerator(Gdx.files.internal(FONT_FILE));
+        FreeTypeFontParameter p   = buildParams(180, 2);
+        BitmapFont font = gen.generateFont(p);
+        font.getData().setScale(0.15f);
         gen.dispose();
         return font;
     }

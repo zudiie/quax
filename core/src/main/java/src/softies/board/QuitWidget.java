@@ -14,6 +14,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 
 // the in-game quit button (bottom-right corner) and the shared confirmation dialog
 // the dialog can also be opened from the welcome screen via triggerConfirm()
+// No (cancel) is on the LEFT in dark red; Yes (quit) is on the RIGHT in dark green
 public class QuitWidget {
 
     private final WorldCalculator world;
@@ -31,16 +32,16 @@ public class QuitWidget {
     private static final float OFFSET_Z = 300f;
 
     // button colours
-    private static final Color BTN_IDLE  = new Color(0.14f, 0.24f, 0.62f, 1f);
-    private static final Color BTN_HOVER = new Color(0.22f, 0.36f, 0.80f, 1f);
-    private static final Color GOLD      = new Color(0.82f, 0.67f, 0.12f, 1f);
+    private static final Color BTN_IDLE  = new Color(0.243f, 0.145f, 0.063f, 1f);
+    private static final Color BTN_HOVER = new Color(0.361f, 0.227f, 0.094f, 1f);
+    private static final Color GOLD      = new Color(0.753f, 0.471f, 0.251f, 1f);
 
     // dialog colours
-    private static final Color DIALOG_BG = new Color(0.10f, 0.18f, 0.52f, 0.97f);
-    private static final Color NO_IDLE   = new Color(0.38f, 0.07f, 0.07f, 1f);
-    private static final Color NO_HOVER  = new Color(0.58f, 0.13f, 0.13f, 1f);
-    private static final Color YES_IDLE  = new Color(0.07f, 0.30f, 0.07f, 1f);
-    private static final Color YES_HOVER = new Color(0.13f, 0.48f, 0.13f, 1f);
+    private static final Color DIALOG_BG = new Color(0.133f, 0.082f, 0.039f, 0.97f);
+    private static final Color NO_IDLE   = new Color(0.227f, 0.071f, 0.047f, 1f);
+    private static final Color NO_HOVER  = new Color(0.345f, 0.125f, 0.078f, 1f);
+    private static final Color YES_IDLE  = new Color(0.243f, 0.145f, 0.063f, 1f);
+    private static final Color YES_HOVER = new Color(0.361f, 0.227f, 0.094f, 1f);
 
     public QuitWidget(WorldCalculator world, Viewport viewport, OrthographicCamera camera) {
         this.world    = world;
@@ -97,7 +98,7 @@ public class QuitWidget {
         batch.begin();
         drawQuitButtonLabel(batch, font);
         if (showConfirm) drawDialogLabels(batch, font);
-        font.setColor(Color.WHITE);
+        font.setColor(new Color(0.910f, 0.835f, 0.690f, 1f));
         batch.end();
     }
 
@@ -134,7 +135,7 @@ public class QuitWidget {
         // semi-transparent dim layer behind the dialog
         float wl = camera.position.x - viewport.getWorldWidth()  / 2;
         float wb = camera.position.y - viewport.getWorldHeight() / 2;
-        sr.setColor(0f, 0f, 0f, 0.70f);
+        sr.setColor(0.102f, 0.067f, 0.031f, 0.82f);
         sr.rect(wl, wb, viewport.getWorldWidth(), viewport.getWorldHeight());
 
         sr.setColor(DIALOG_BG);
@@ -153,7 +154,7 @@ public class QuitWidget {
         sr.begin(ShapeRenderer.ShapeType.Line);
         sr.setColor(GOLD);
         sr.rect(dX, dY, dW, dH);
-        sr.setColor(1f, 1f, 1f, 0.50f);
+        sr.setColor(0.910f, 0.835f, 0.690f, 0.45f);
         sr.rect(noX,  bY, bW, bH);
         sr.rect(yesX, bY, bW, bH);
         sr.end();
@@ -162,7 +163,7 @@ public class QuitWidget {
     /** draws the "Quit" label centred in the quit button */
     private void drawQuitButtonLabel(SpriteBatch batch, BitmapFont font) {
         if (quitBounds == null) return;
-        font.setColor(Color.WHITE);
+        font.setColor(new Color(0.910f, 0.835f, 0.690f, 1f));
         drawCentred(batch, font, "Quit", quitBounds);
     }
 

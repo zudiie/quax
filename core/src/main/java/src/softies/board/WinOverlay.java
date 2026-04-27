@@ -17,8 +17,8 @@ import src.softies.PlayerColour;
 // spans the full viewport width so it covers the column letters and board title
 //
 // sub-message is context-aware:
-//   human wins → "Congratulations!"
-//   bot wins   → "Better luck next time!"
+//   human wins -> "Congratulations!"
+//   bot wins   -> "Better luck next time!"
 //
 // two buttons are shown:
 //   "Play Again" - signals RESTART to Main, which resets the board without exiting
@@ -35,17 +35,17 @@ public class WinOverlay {
     private static final float BANNER_H = 160f;
 
     // banner
-    private static final Color WIN_BG      = new Color(0.06f, 0.12f, 0.40f, 0.95f);
-    private static final Color GOLD_BORDER = new Color(0.82f, 0.67f, 0.12f, 1f);
+    private static final Color WIN_BG      = new Color(0.133f, 0.082f, 0.039f, 0.97f);
+    private static final Color GOLD_BORDER = new Color(0.753f, 0.471f, 0.251f, 1f);
     private static final Color NEAR_BLACK  = new Color(0.10f, 0.10f, 0.10f, 1f);
 
     // "Play Again" - green
-    private static final Color BTN_PLAY_IDLE  = new Color(0.10f, 0.38f, 0.10f, 1f);
-    private static final Color BTN_PLAY_HOVER = new Color(0.16f, 0.56f, 0.16f, 1f);
+    private static final Color BTN_PLAY_IDLE  = new Color(0.243f, 0.145f, 0.063f, 1f);
+    private static final Color BTN_PLAY_HOVER = new Color(0.361f, 0.227f, 0.094f, 1f);
 
     // "Quit" - dark red
-    private static final Color BTN_QUIT_IDLE  = new Color(0.38f, 0.07f, 0.07f, 1f);
-    private static final Color BTN_QUIT_HOVER = new Color(0.58f, 0.13f, 0.13f, 1f);
+    private static final Color BTN_QUIT_IDLE  = new Color(0.227f, 0.071f, 0.047f, 1f);
+    private static final Color BTN_QUIT_HOVER = new Color(0.345f, 0.125f, 0.078f, 1f);
 
     // button rectangles - set during draw(), used for hit-testing in handleInput()
     private Rectangle playAgainBounds;
@@ -74,7 +74,9 @@ public class WinOverlay {
     public void draw(SpriteBatch batch, ShapeRenderer shapeRenderer,
                      BitmapFont font, PlayerColour winner) {
 
-        float bW = viewport.getWorldWidth();
+        // use camera's actual viewport dimensions so the banner spans the
+        // full visible screen regardless of FitViewport letterboxing
+        float bW = camera.viewportWidth  * camera.zoom;
         float bX = camera.position.x - bW / 2f;
         float bY = camera.position.y - BANNER_H / 2f;
 
@@ -105,21 +107,22 @@ public class WinOverlay {
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
         sr.setProjectionMatrix(camera.combined);
 
+        // fill bleeds 4 units beyond each screen edge so the background has no gaps
+        float bleed = 4f;
         sr.begin(ShapeRenderer.ShapeType.Filled);
-        // banner background
         sr.setColor(WIN_BG);
-        sr.rect(bX, bY, bW, BANNER_H);
-        // Play Again button - green, brightens on hover
+        sr.rect(bX - bleed, bY, bW + bleed * 2, BANNER_H);
         sr.setColor(playAgainBounds.contains(mouse.x, mouse.y) ? BTN_PLAY_HOVER : BTN_PLAY_IDLE);
         sr.rect(playAgainBounds.x, playAgainBounds.y, playAgainBounds.width, playAgainBounds.height);
-        // Quit button - dark red, brightens on hover
         sr.setColor(quitBounds.contains(mouse.x, mouse.y) ? BTN_QUIT_HOVER : BTN_QUIT_IDLE);
         sr.rect(quitBounds.x, quitBounds.y, quitBounds.width, quitBounds.height);
         sr.end();
 
+        // border is inset by 2 units on each side so it is always inside the visible area
+        float inset = 2f;
         sr.begin(ShapeRenderer.ShapeType.Line);
         sr.setColor(GOLD_BORDER);
-        sr.rect(bX, bY, bW, BANNER_H);
+        sr.rect(bX + inset, bY, bW - inset * 2, BANNER_H);
         sr.rect(playAgainBounds.x, playAgainBounds.y, playAgainBounds.width, playAgainBounds.height);
         sr.rect(quitBounds.x,      quitBounds.y,      quitBounds.width,      quitBounds.height);
         sr.end();
@@ -143,7 +146,7 @@ public class WinOverlay {
         // sub-message - differs based on whether the bot or the human won
         boolean botWon = (winner == gameState.getBotColour());
         String sub = botWon ? "Better luck next time!" : "Congratulations!";
-        font.setColor(Color.WHITE);
+        font.setColor(new Color(0.910f, 0.835f, 0.690f, 1f));
         GlyphLayout sl = new GlyphLayout(font, sub);
         font.draw(batch, sub, bX + (bW - sl.width) / 2f, bY + BANNER_H - 62f);
     }

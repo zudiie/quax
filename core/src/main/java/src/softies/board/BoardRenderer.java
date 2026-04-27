@@ -13,11 +13,8 @@ import src.softies.PlayerColour;
 
 // coordinates all in-game text drawing:
 //   SidePanelRenderer - objectives and You/Bot player panel (right side)
-//   WinOverlay - banner drawn on top when the game ends also draws board labels, title and the turn indicator directly
-//
-// DRAW ORDER when game is over:
-//   1. board labels + side panel (appear behind the overlay)
-//   2. win overlay (drawn last - visually covers the column letters and title)
+//   WinOverlay        - full-width winner banner drawn on top when the game ends
+// also draws board labels, title and the turn indicator directly
 public class BoardRenderer {
 
     public enum InputResult { NONE, RESTART, QUIT }
@@ -30,8 +27,8 @@ public class BoardRenderer {
     private final SidePanelRenderer sidePanel;
     private final WinOverlay        winOverlay;
 
-    private static final Color NEAR_BLACK = new Color(0.10f, 0.10f, 0.10f, 1f);
-    private static final Color STATUS_RED = new Color(0.95f, 0.35f, 0.35f, 1f);
+    private static final Color NEAR_BLACK = new Color(0.11f, 0.063f, 0.024f, 1f);
+    private static final Color STATUS_RED = new Color(0.88f, 0.35f, 0.22f, 1f);
 
     public BoardRenderer(WorldCalculator world, GameState gameState,
                          Viewport viewport, OrthographicCamera camera) {
@@ -60,7 +57,7 @@ public class BoardRenderer {
             drawBoardLabels(batch, font);
             sidePanel.render(batch, font);
         }
-        font.setColor(Color.WHITE);
+        font.setColor(new Color(0.910f, 0.835f, 0.690f, 1f));
     }
 
     /**
@@ -99,7 +96,7 @@ public class BoardRenderer {
         float worldBottom = camera.position.y - viewport.getWorldHeight() / 2f;
         float y = worldBottom + 100f;
 
-        font.setColor(Color.WHITE);
+        font.setColor(new Color(0.910f, 0.835f, 0.690f, 1f));
         font.draw(batch, prefix, baseX, y);
         font.setColor(current == PlayerColour.BLACK ? NEAR_BLACK : Color.WHITE);
         font.draw(batch, suffix, baseX + pl.width, y);
@@ -136,7 +133,9 @@ public class BoardRenderer {
         }
 
         // title reflects the current game mode
-        String title = "Quax: Human vs Bot";
+        String title = (gameState.getGameMode() == GameMode.HUMAN_VS_BOT)
+            ? "Quax: Human vs Bot"
+            : "Quax: Human vs Human";
         GlyphLayout tl = new GlyphLayout(font, title);
         font.draw(batch, title, world.boardCenterX - tl.width / 2f, world.boardMaxY + 130f);
     }

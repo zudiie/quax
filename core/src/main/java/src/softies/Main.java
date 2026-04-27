@@ -34,6 +34,7 @@ public class Main extends ApplicationAdapter {
     private ShapeRenderer shapeRenderer;
     private BitmapFont font;
     private BitmapFont welcomeFont;
+    private BitmapFont welcomeMiniFont;
 
     // game model
     private GameState gameState;
@@ -136,7 +137,6 @@ public class Main extends ApplicationAdapter {
         inputHandler      = new InputHandler(map, octagonLayer, diamondLayer, UNIT_SCALE, gameState, viewport, boardLogic);
         boardRenderer     = new BoardRenderer(world, gameState, viewport, camera);
         diamondRenderer   = new DiamondLayerRenderer(map, UNIT_SCALE);
-        // WelcomeScreen accepts gameState for source-level compatibility (not used internally)
         welcomeScreen     = new WelcomeScreen(world, viewport, camera, gameState);
         quitWidget        = new QuitWidget(world, viewport, camera);
         pieRuleWidget     = new PieRuleWidget(gameState, world, viewport, camera);
@@ -145,8 +145,9 @@ public class Main extends ApplicationAdapter {
     }
 
     private void loadFonts() {
-        font        = FontLoader.loadMainFont();
-        welcomeFont = FontLoader.loadWelcomeFont();
+        font            = FontLoader.loadMainFont();
+        welcomeFont     = FontLoader.loadWelcomeFont();
+        welcomeMiniFont = FontLoader.loadWelcomeMiniFont();
     }
 
     // -------------------------------------------------------------------------
@@ -166,10 +167,9 @@ public class Main extends ApplicationAdapter {
         if (Gdx.input.justTouched()) handleInput();
 
         if (showWelcome) {
-            // pass mouse position so WelcomeScreen can compute hover states
             Vector3 mouse = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
             viewport.unproject(mouse);
-            welcomeScreen.draw(batch, font, welcomeFont, shapeRenderer, mouse);
+            welcomeScreen.draw(batch, font, welcomeFont, welcomeMiniFont, shapeRenderer, mouse);
         } else {
             renderGame();
         }
@@ -181,7 +181,7 @@ public class Main extends ApplicationAdapter {
     }
 
     private void clearScreen() {
-        Gdx.gl.glClearColor(0.5f, 0.5f, 0.5f, 1);
+        Gdx.gl.glClearColor(0.227f, 0.133f, 0.063f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
     }
 
@@ -202,15 +202,12 @@ public class Main extends ApplicationAdapter {
             botThinkTimer -= dt;
             if (botThinkTimer <= 0f) {
                 botThinkTimer = -1f;
-                // bot has a 50/50 chance of activating the pie rule
                 if (gameState.isPieRuleAvailable() && gameState.isBotTurn()) {
-                    // 50/50 chance: bot may activate the pie rule or decline and play normally
                     if (new java.util.Random().nextBoolean()) {
                         System.out.println("Bot chose to activate the pie rule.");
                         gameState.activatePieRule();
                         botStrategyWidget.invalidate();
-                        pieRuleWidget.showBanner(); // show the same banner the human would see
-                        // turn passes to human after activation - no further scheduling needed
+                        pieRuleWidget.showBanner();
                     } else {
                         System.out.println("Bot declined the pie rule - playing a normal move.");
                         executeBotMove();
@@ -225,7 +222,7 @@ public class Main extends ApplicationAdapter {
     private void renderGame() {
         renderTiles();
         renderDiamonds();
-        botStrategyWidget.drawOverlayShapes(shapeRenderer); // heat map colours
+        botStrategyWidget.drawOverlayShapes(shapeRenderer);
         renderHoverOverlay();
         renderBoardText();
     }
@@ -284,8 +281,8 @@ public class Main extends ApplicationAdapter {
     private void renderBoardText() {
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
-        botStrategyWidget.drawOverlayLabels(batch, font);    // score numbers on each cell
-        botStrategyWidget.drawExplanation(batch, font);      // text legend in right panel
+        botStrategyWidget.drawOverlayLabels(batch, font);
+        botStrategyWidget.drawExplanation(batch, font);
         boardRenderer.render(batch, font, shapeRenderer, statusMessage);
         batch.end();
     }
@@ -296,12 +293,8 @@ public class Main extends ApplicationAdapter {
 
     /**
      * starts the bot think timer if it is the bot's turn and no timer is already running
-     * also starts the timer if the pie rule window is open and the bot should activate it
      */
     private void scheduleBotMoveIfNeeded() {
-        // only schedule when it is genuinely the bot's turn - removing the
-        // isPieRuleAvailable() secondary trigger which was causing the bot timer to
-        // fire on the human's turn and always activate the pie rule unexpectedly
         if (!showWelcome && !gameState.isGameOver()
             && gameState.isBotTurn()
             && botThinkTimer < 0f) {
@@ -331,7 +324,6 @@ public class Main extends ApplicationAdapter {
             System.err.println("Bot selected invalid cell: " + label + " - retrying");
             botThinkTimer = 0.5f;
         }
-        // WIN result: win overlay displays automatically via BoardRenderer
     }
 
     // -------------------------------------------------------------------------
@@ -342,20 +334,15 @@ public class Main extends ApplicationAdapter {
         Vector3 tp = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
         viewport.unproject(tp);
 
-        // win overlay buttons (Play Again / Quit) - checked first
         if (!showWelcome) {
             BoardRenderer.InputResult overlayResult = boardRenderer.handleInput(tp);
             if (overlayResult == BoardRenderer.InputResult.RESTART) { restartGame(); return; }
             if (overlayResult == BoardRenderer.InputResult.QUIT)    { Gdx.app.exit(); return; }
         }
 
-        // quit confirmation dialog eats all input while open
         if (quitWidget.handleInput(tp)) return;
-
-        // bot strategy toggle
         if (botStrategyWidget.handleInput(tp)) return;
 
-        // pie rule button
         if (pieRuleWidget.handleInput(tp)) {
             botStrategyWidget.invalidate();
             scheduleBotMoveIfNeeded();
@@ -371,7 +358,6 @@ public class Main extends ApplicationAdapter {
 
     /**
      * handles a click on the welcome screen
-     * mode selection removed - only START and QUIT_CONFIRM remain
      */
     private void handleWelcomeInput(Vector3 tp) {
         WelcomeScreen.WelcomeAction action = welcomeScreen.handleInput(tp);
@@ -379,7 +365,7 @@ public class Main extends ApplicationAdapter {
             showWelcome = false;
             quitWidget.setVisible(true);
             botStrategyWidget.invalidate();
-            scheduleBotMoveIfNeeded(); // start bot timer immediately if bot is BLACK
+            scheduleBotMoveIfNeeded();
         } else if (action == WelcomeScreen.WelcomeAction.QUIT_CONFIRM) {
             quitWidget.triggerConfirm();
         }
@@ -432,21 +418,16 @@ public class Main extends ApplicationAdapter {
     /**
      * resets all game state and tile graphics so a fresh game can begin without
      * reloading the TMX map or recreating the window
-     *
-     * FIX - gameMode is explicitly set to HUMAN_VS_BOT so BotStrategyWidget
-     * button remains visible after restart (GameState.gameMode already defaults
-     * to HUMAN_VS_BOT, but being explicit avoids any future regression)
      */
     private void restartGame() {
         gameState  = new GameState();
-        gameState.setGameMode(GameMode.HUMAN_VS_BOT); // ensure button visibility after restart
+        gameState.setGameMode(GameMode.HUMAN_VS_BOT);
         boardLogic = new QuaxBoard();
         botPlayer  = new BotPlayer(boardLogic, gameState);
 
         TiledMapTileLayer octagonLayer = (TiledMapTileLayer) map.getLayers().get("Octagons");
         MapLayer          diamondLayer = map.getLayers().get("Diamonds");
 
-        // recreate all subsystems that hold the old gameState / boardLogic reference
         inputHandler      = new InputHandler(map, octagonLayer, diamondLayer, UNIT_SCALE, gameState, viewport, boardLogic);
         boardRenderer     = new BoardRenderer(world, gameState, viewport, camera);
         pieRuleWidget     = new PieRuleWidget(gameState, world, viewport, camera);
@@ -510,11 +491,12 @@ public class Main extends ApplicationAdapter {
 
     @Override
     public void dispose() {
-        if (map           != null) map.dispose();
-        if (tileRenderer  != null) tileRenderer.dispose();
-        if (batch         != null) batch.dispose();
-        if (font          != null) font.dispose();
-        if (welcomeFont   != null) welcomeFont.dispose();
-        if (shapeRenderer != null) shapeRenderer.dispose();
+        if (map             != null) map.dispose();
+        if (tileRenderer    != null) tileRenderer.dispose();
+        if (batch           != null) batch.dispose();
+        if (font            != null) font.dispose();
+        if (welcomeFont     != null) welcomeFont.dispose();
+        if (welcomeMiniFont != null) welcomeMiniFont.dispose();
+        if (shapeRenderer   != null) shapeRenderer.dispose();
     }
 }

@@ -29,12 +29,12 @@ public class PieRuleWidget {
     private static final float BANNER_DURATION = 3.5f;
 
     // button colours - matches QuitWidget theme
-    private static final Color BTN_IDLE  = new Color(0.14f, 0.24f, 0.62f, 1f);
-    private static final Color BTN_HOVER = new Color(0.22f, 0.36f, 0.80f, 1f);
-    private static final Color GOLD      = new Color(0.82f, 0.67f, 0.12f, 1f);
+    private static final Color BTN_IDLE  = new Color(0.243f, 0.145f, 0.063f, 1f);
+    private static final Color BTN_HOVER = new Color(0.361f, 0.227f, 0.094f, 1f);
+    private static final Color GOLD      = new Color(0.753f, 0.471f, 0.251f, 1f);
 
     // banner background
-    private static final Color BANNER_BG = new Color(0.10f, 0.18f, 0.52f, 0.92f);
+    private static final Color BANNER_BG = new Color(0.133f, 0.082f, 0.039f, 0.96f);
 
     public PieRuleWidget(GameState gameState, WorldCalculator world,
                          Viewport viewport, OrthographicCamera camera) {
@@ -85,12 +85,15 @@ public class PieRuleWidget {
 
         // button label is drawn separately (banner already handled its own batch)
         if (bounds != null) {
+            boolean botTurn = gameState.isBotTurn();
+            float alpha = botTurn ? 0.50f : 1f;
             batch.begin();
-            font.setColor(Color.WHITE);
+            font.setColor(0.910f, 0.835f, 0.690f, alpha);
             GlyphLayout gl = new GlyphLayout(font, "Activate Pie Rule");
             font.draw(batch, "Activate Pie Rule",
                 bounds.x + (bounds.width  - gl.width)  / 2f,
                 bounds.y + (bounds.height + gl.height) / 2f);
+            font.setColor(Color.WHITE);
             batch.end();
         }
     }
@@ -101,13 +104,19 @@ public class PieRuleWidget {
     private void drawButton(ShapeRenderer sr, Vector3 mouse) {
         if (bounds == null) return;
 
+        // when it is the bot's turn the button is visible but locked - 50% opacity
+        boolean botTurn = gameState.isBotTurn();
+        float alpha = botTurn ? 0.50f : 1f;
+
+        Color fill = botTurn ? BTN_IDLE : (bounds.contains(mouse.x, mouse.y) ? BTN_HOVER : BTN_IDLE);
+
         sr.begin(ShapeRenderer.ShapeType.Filled);
-        sr.setColor(bounds.contains(mouse.x, mouse.y) ? BTN_HOVER : BTN_IDLE);
+        sr.setColor(fill.r, fill.g, fill.b, alpha);
         sr.rect(bounds.x, bounds.y, bounds.width, bounds.height);
         sr.end();
 
         sr.begin(ShapeRenderer.ShapeType.Line);
-        sr.setColor(GOLD);
+        sr.setColor(GOLD.r, GOLD.g, GOLD.b, alpha);
         sr.rect(bounds.x, bounds.y, bounds.width, bounds.height);
         sr.end();
     }
@@ -167,6 +176,7 @@ public class PieRuleWidget {
      */
     public boolean handleInput(Vector3 touchPos) {
         if (bounds != null && bounds.contains(touchPos.x, touchPos.y)) {
+            if (gameState.isBotTurn()) return true; // consume click but do nothing
             gameState.activatePieRule();
             bannerTimer = BANNER_DURATION;
             return true;

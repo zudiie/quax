@@ -156,7 +156,7 @@ public class QuaxController {
     }
 
     /**
-     * flips the current player — same as switchTurn but public
+     * flips the current player - same as switchTurn but public
      * useful for the GUI layer to trigger a turn change directly
      */
     public void changePlayer() {

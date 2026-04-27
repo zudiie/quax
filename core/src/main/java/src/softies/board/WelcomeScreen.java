@@ -12,163 +12,66 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
-// draws the welcome screen: full-screen dark overlay + centred card
+// draws the welcome screen: full-screen octagon wallpaper background, centred layout
 // shows QUAX title, "Human vs Bot" subtitle, and two buttons: Play Game / Quit
-
 public class WelcomeScreen {
 
-    private final WorldCalculator world;
     private final Viewport viewport;
     private final OrthographicCamera camera;
 
-    // card dimensions
-    private static final float CARD_W  = 380f;
-    private static final float CARD_H  = 310f;
-    private static final float BTN_W   = 280f;
-    private static final float BTN_H   =  58f;
-    private static final float BTN_GAP =  18f;
+    // - palette -
+    private static final Color BG_BASE   = new Color(0.102f, 0.067f, 0.031f, 1f);
+    private static final Color GRID_OCT  = new Color(0.180f, 0.102f, 0.039f, 0.30f);
+    private static final Color GRID_EDGE = new Color(0.290f, 0.180f, 0.078f, 0.22f);
+    private static final Color COPPER    = new Color(0.753f, 0.471f, 0.251f, 1f);
+    private static final Color CREAM     = new Color(0.910f, 0.835f, 0.690f, 1f);
+    private static final Color CARAMEL   = new Color(0.769f, 0.604f, 0.345f, 1f);
+    private static final Color BTN_FILL  = new Color(0.243f, 0.145f, 0.063f, 1f);
+    private static final Color BTN_HOV   = new Color(0.361f, 0.227f, 0.094f, 1f);
+    private static final Color QUIT_COL  = new Color(0.580f, 0.435f, 0.251f, 1f);
+    private static final Color QUIT_HOV  = new Color(0.769f, 0.604f, 0.345f, 1f);
 
-    // button rectangles recomputed every draw call
+    // - tile size - must match the game board's world-unit tile size (128px * 0.25) -
+    private static final float TILE = 32f;
+
+    // - button layout -
+    private static final float PB_W = 260f; // Play Game width
+    private static final float PB_H =  52f; // Play Game height
     private Rectangle playBounds;
-    private Rectangle quitBounds;
-
-    // full-screen dim overlay - very dark navy
-    private static final Color OVERLAY    = new Color(0.02f, 0.04f, 0.10f, 0.88f);
-
-    // card - dark blue, gold border
-    private static final Color CARD_BG    = new Color(0.06f, 0.10f, 0.22f, 0.98f);
-    private static final Color CARD_INNER = new Color(0.08f, 0.14f, 0.28f, 0.98f); // slightly lighter inner
-    private static final Color GOLD       = new Color(0.82f, 0.67f, 0.12f, 1f);
-
-    // title / subtitle
-    private static final Color TITLE_COL    = new Color(0.96f, 0.83f, 0.25f, 1f); // warm gold
-    private static final Color SUBTITLE_COL = new Color(0.55f, 0.87f, 0.97f, 1f); // light cyan
-
-    // Play Game - green
-    private static final Color PLAY_IDLE  = new Color(0.08f, 0.38f, 0.14f, 1f);
-    private static final Color PLAY_HOVER = new Color(0.13f, 0.54f, 0.22f, 1f);
-
-    // Quit - deep red
-    private static final Color QUIT_IDLE  = new Color(0.38f, 0.07f, 0.07f, 1f);
-    private static final Color QUIT_HOVER = new Color(0.54f, 0.13f, 0.13f, 1f);
+    private Rectangle quitBounds; // generous hit target for the text-only quit
 
     /**
-     * @param world     board bounds - used to compute card centre position
-     * @param viewport  for full-screen overlay sizing
-     * @param camera    for ShapeRenderer projection and world coordinates
-     * @param gameState accepted for source-level compatibility; not used in this class
+     * @param world     accepted for source-level compatibility; not used here
+     * @param viewport  for full-screen sizing and coordinate conversions
+     * @param camera    for ShapeRenderer projection and world-space coordinates
+     * @param gameState accepted for source-level compatibility; not used here
      */
     public WelcomeScreen(WorldCalculator world, Viewport viewport,
                          OrthographicCamera camera, GameState gameState) {
-        this.world    = world;
         this.viewport = viewport;
         this.camera   = camera;
     }
 
-    /**
-     * draws the full welcome screen
-     * signature matches the original so Main does not need to change
-     */
+    // - public draw - signature unchanged so Main.java needs no edits -
+
     public void draw(SpriteBatch batch, BitmapFont font,
-                     BitmapFont welcomeFont, ShapeRenderer sr, Vector3 mouse) {
-        computeButtonBounds();
+                     BitmapFont welcomeFont, BitmapFont welcomeMiniFont, ShapeRenderer sr, Vector3 mouse) {
+        computeBounds();
 
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-        drawBackground(sr, mouse);
+        drawShapes(sr, mouse);
 
         Gdx.gl.glDisable(GL20.GL_BLEND);
 
         batch.begin();
-        drawTitleText(batch, welcomeFont);
-        drawButtonLabels(batch, font);
+        drawText(batch, font, welcomeFont, welcomeMiniFont, mouse);
         batch.end();
     }
 
-    // -------------------------------------------------------------------------
-    // private drawing
-    // -------------------------------------------------------------------------
+    // - input -
 
-    /**
-     * draws the dim overlay, card panel, an inner highlight strip, and both buttons
-     */
-    private void drawBackground(ShapeRenderer sr, Vector3 mouse) {
-        sr.setProjectionMatrix(camera.combined);
-
-        float cx    = camera.position.x;
-        float cy    = camera.position.y;
-        float cardX = cx - CARD_W / 2f;
-        float cardY = cy - CARD_H / 2f;
-
-        sr.begin(ShapeRenderer.ShapeType.Filled);
-
-        // full-screen dark overlay
-        float wl = camera.position.x - viewport.getWorldWidth()  / 2f;
-        float wb = camera.position.y - viewport.getWorldHeight() / 2f;
-        sr.setColor(OVERLAY);
-        sr.rect(wl, wb, viewport.getWorldWidth(), viewport.getWorldHeight());
-
-        // card background
-        sr.setColor(CARD_BG);
-        sr.rect(cardX, cardY, CARD_W, CARD_H);
-
-        // subtle inner highlight strip at the top of the card (title area)
-        sr.setColor(CARD_INNER);
-        sr.rect(cardX + 4f, cardY + CARD_H - 110f, CARD_W - 8f, 106f);
-
-        // Play Game button
-        sr.setColor(playBounds.contains(mouse.x, mouse.y) ? PLAY_HOVER : PLAY_IDLE);
-        sr.rect(playBounds.x, playBounds.y, playBounds.width, playBounds.height);
-
-        // Quit button
-        sr.setColor(quitBounds.contains(mouse.x, mouse.y) ? QUIT_HOVER : QUIT_IDLE);
-        sr.rect(quitBounds.x, quitBounds.y, quitBounds.width, quitBounds.height);
-
-        sr.end();
-
-        sr.begin(ShapeRenderer.ShapeType.Line);
-        // double gold border: outer (full card) and inner (title area bottom edge)
-        sr.setColor(GOLD);
-        sr.rect(cardX, cardY, CARD_W, CARD_H);
-        // separator between title area and button area - a single horizontal line
-        sr.line(cardX + 10f, cardY + CARD_H - 116f, cardX + CARD_W - 10f, cardY + CARD_H - 116f);
-        // button borders
-        sr.rect(playBounds.x, playBounds.y, playBounds.width, playBounds.height);
-        sr.rect(quitBounds.x, quitBounds.y, quitBounds.width, quitBounds.height);
-        sr.end();
-    }
-
-    /**
-     * draws "QUAX" in warm gold and "Human vs Bot" in cyan, centred in the title area
-     */
-    private void drawTitleText(SpriteBatch batch, BitmapFont welcomeFont) {
-        float cx = camera.position.x;
-        float cy = camera.position.y;
-
-        welcomeFont.setColor(TITLE_COL);
-        String title = "QUAX";
-        GlyphLayout tl = new GlyphLayout(welcomeFont, title);
-        welcomeFont.draw(batch, title, cx - tl.width / 2f, cy + CARD_H / 2f - 24f);
-
-        welcomeFont.setColor(SUBTITLE_COL);
-        String sub = "Human vs Bot";
-        GlyphLayout sl = new GlyphLayout(welcomeFont, sub);
-        welcomeFont.draw(batch, sub, cx - sl.width / 2f, cy + CARD_H / 2f - 72f);
-    }
-
-    /** draws "Play Game" and "Quit" labels centred in their buttons */
-    private void drawButtonLabels(SpriteBatch batch, BitmapFont font) {
-        font.setColor(Color.WHITE);
-        drawCentred(batch, font, "Play Game", playBounds);
-        drawCentred(batch, font, "Quit",      quitBounds);
-    }
-
-    /**
-     * processes a click on the welcome screen
-     * WelcomeAction enum contains only NONE / START / QUIT_CONFIRM since mode
-     * selection has been removed from this class
-     */
     public WelcomeAction handleInput(Vector3 touchPos) {
         if (playBounds != null && playBounds.contains(touchPos.x, touchPos.y))
             return WelcomeAction.START;
@@ -177,25 +80,148 @@ public class WelcomeScreen {
         return WelcomeAction.NONE;
     }
 
-    // what the user did - SELECT_* removed (only one mode exists)
     public enum WelcomeAction { NONE, START, QUIT_CONFIRM }
 
-    // -------------------------------------------------------------------------
-    // helpers
-    // -------------------------------------------------------------------------
+    private void drawShapes(ShapeRenderer sr, Vector3 mouse) {
+        sr.setProjectionMatrix(camera.combined);
 
-    /** computes button rectangles centred in the lower half of the card */
-    private void computeButtonBounds() {
+        float vw   = viewport.getWorldWidth();
+        float vh   = viewport.getWorldHeight();
+        float left = camera.position.x - vw / 2f;
+        float bot  = camera.position.y - vh / 2f;
         float cx   = camera.position.x;
         float cy   = camera.position.y;
-        float btnX = cx - BTN_W / 2f;
 
-        // Play Game button sits above centre; Quit button sits below
-        playBounds = new Rectangle(btnX, cy - 32f,                 BTN_W, BTN_H);
-        quitBounds = new Rectangle(btnX, cy - 32f - BTN_H - BTN_GAP, BTN_W, BTN_H);
+        sr.begin(ShapeRenderer.ShapeType.Filled);
+
+        sr.setColor(BG_BASE);
+        sr.rect(left, bot, vw, vh);
+
+        float CUT = TILE * 0.25f;
+        int colsNeeded = (int) Math.ceil(vw / TILE) + 2;
+        int rowsNeeded = (int) Math.ceil(vh / TILE) + 2;
+        float gridLeft = left - TILE;
+        float gridBot  = bot  - TILE;
+
+        sr.setColor(GRID_OCT);
+        for (int row = 0; row < rowsNeeded; row++) {
+            for (int col = 0; col < colsNeeded; col++) {
+                float ox = gridLeft + col * TILE;
+                float oy = gridBot  + row * TILE;
+                fillOctTile(sr, ox, oy, TILE, CUT);
+            }
+        }
+
+        boolean overPlay = playBounds.contains(mouse.x, mouse.y);
+        sr.setColor(overPlay ? BTN_HOV : BTN_FILL);
+        sr.rect(playBounds.x, playBounds.y, playBounds.width, playBounds.height);
+
+        sr.end();
+
+        sr.begin(ShapeRenderer.ShapeType.Line);
+
+        sr.setColor(GRID_EDGE);
+        for (int row = 0; row < rowsNeeded; row++) {
+            for (int col = 0; col < colsNeeded; col++) {
+                float ox = gridLeft + col * TILE;
+                float oy = gridBot  + row * TILE;
+                outlineOctTile(sr, ox, oy, TILE, CUT);
+            }
+        }
+
+        float ruleY  = cy + 34f;
+        float ruleHW = 100f;
+        sr.setColor(COPPER);
+        //sr.line(cx - ruleHW, ruleY, cx + ruleHW, ruleY);
+
+        sr.setColor(COPPER);
+        sr.rect(playBounds.x, playBounds.y, playBounds.width, playBounds.height);
+
+        sr.end();
     }
 
-    private void drawCentred(SpriteBatch batch, BitmapFont font, String text, Rectangle r) {
+    private void drawText(SpriteBatch batch, BitmapFont font,
+                          BitmapFont welcomeFont, BitmapFont welcomeMiniFont, Vector3 mouse) {
+        float cx = camera.position.x;
+        float cy = camera.position.y;
+        float vw = viewport.getWorldWidth();
+        float vh = viewport.getWorldHeight();
+
+        welcomeFont.getData().setScale(0.42f);
+        welcomeFont.setColor(CREAM);
+        String title = "QUAX";
+        GlyphLayout tl = new GlyphLayout(welcomeFont, title);
+        welcomeFont.draw(batch, title, cx - tl.width / 2f, cy + 130f);
+        welcomeFont.getData().setScale(0.2f); // restore
+
+        welcomeMiniFont.setColor(CARAMEL);
+        String sub = "Human  vs  Bot";
+        GlyphLayout sl = new GlyphLayout(welcomeMiniFont, sub);
+        welcomeMiniFont.draw(batch, sub, cx - sl.width / 2f, cy + 16f);
+
+        font.setColor(CREAM);
+        drawCentred(batch, font, "Play Game", playBounds);
+
+        boolean overQuit = quitBounds.contains(mouse.x, mouse.y);
+        font.setColor(overQuit ? QUIT_HOV : QUIT_COL);
+        String qLabel = "Quit";
+        GlyphLayout ql = new GlyphLayout(font, qLabel);
+        font.draw(batch, qLabel,
+            cx - ql.width / 2f,
+            cy - 108f);
+
+        font.setColor(Color.WHITE); // reset
+    }
+
+
+    private void fillOctTile(ShapeRenderer sr, float ox, float oy,
+                             float tile, float cut) {
+        float[] v = octVerts(ox, oy, tile, cut);
+        float fcx = ox + tile / 2f;
+        float fcy = oy + tile / 2f;
+        for (int i = 0; i < 8; i++) {
+            int j = (i + 1) % 8;
+            sr.triangle(fcx, fcy, v[i*2], v[i*2+1], v[j*2], v[j*2+1]);
+        }
+    }
+
+
+    private void outlineOctTile(ShapeRenderer sr, float ox, float oy,
+                                float tile, float cut) {
+        float[] v = octVerts(ox, oy, tile, cut);
+        for (int i = 0; i < 8; i++) {
+            int j = (i + 1) % 8;
+            sr.line(v[i*2], v[i*2+1], v[j*2], v[j*2+1]);
+        }
+    }
+
+
+    private float[] octVerts(float ox, float oy, float tile, float cut) {
+        return new float[]{
+            ox + cut,        oy,               // bottom-left edge
+            ox + tile - cut, oy,               // bottom-right edge
+            ox + tile,       oy + cut,         // right-bottom
+            ox + tile,       oy + tile - cut,  // right-top
+            ox + tile - cut, oy + tile,        // top-right edge
+            ox + cut,        oy + tile,        // top-left edge
+            ox,              oy + tile - cut,  // left-top
+            ox,              oy + cut          // left-bottom
+        };
+    }
+
+    private void computeBounds() {
+        float cx = camera.position.x;
+        float cy = camera.position.y;
+
+        // Play Game - centred, above the midpoint of the lower half
+        playBounds = new Rectangle(cx - PB_W / 2f, cy - 82f, PB_W, PB_H);
+
+        // Quit - generous invisible hit area around the text
+        quitBounds = new Rectangle(cx - 60f, cy - 130f, 120f, 36f);
+    }
+
+    private void drawCentred(SpriteBatch batch, BitmapFont font,
+                             String text, Rectangle r) {
         GlyphLayout gl = new GlyphLayout(font, text);
         font.draw(batch, text,
             r.x + (r.width  - gl.width)  / 2f,

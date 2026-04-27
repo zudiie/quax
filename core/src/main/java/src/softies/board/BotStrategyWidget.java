@@ -23,21 +23,7 @@ import src.softies.QuaxBoard;
 
 import java.util.Map;
 
-// toggleable heat-map overlay that shows how the bot rates every empty cell
-// only visible in Human-vs-Bot mode; the toggle button sits left of the quit button
-//
-// HEAT MAP COLOURS:
-//   Green  = bot rates this cell highly (good path position or winning move)
-//   Yellow = moderate priority (reasonable path but not optimal)
-//   Red    = low priority (far from the winning route or blocked)
-// NUMBER LABELS:
-//   Each coloured cell shows a 0–100% score.  100 = the bot wants this cell most.
-//   The score is derived from Dijkstra path costs: cells on the shortest crossing
-//   route score highest; unreachable or impassable cells score 0.
-//
-// STRATEGY EXPLANATION:
-//   drawExplanation() renders a brief text summary in the right panel
-//   while the overlay is active - call it from Main.renderBoardText()
+// toggleable heat-map overlay showing the bot's move ratings on the board
 public class BotStrategyWidget {
 
     private final BotPlayer botPlayer;
@@ -62,15 +48,13 @@ public class BotStrategyWidget {
     private static final int   GID_EMPTY_OCT  = 5;
     private static final float OCT_CUT        = 0.25f;
 
-    // button colours - matches QuitWidget / PieRuleWidget theme
-    private static final Color BTN_IDLE  = new Color(0.14f, 0.24f, 0.62f, 1f);
-    private static final Color BTN_HOVER = new Color(0.22f, 0.36f, 0.80f, 1f);
-    private static final Color GOLD      = new Color(0.82f, 0.67f, 0.12f, 1f);
+    private static final Color BTN_IDLE  = new Color(0.243f, 0.145f, 0.063f, 1f);
+    private static final Color BTN_HOVER = new Color(0.361f, 0.227f, 0.094f, 1f);
+    private static final Color GOLD      = new Color(0.753f, 0.471f, 0.251f, 1f);
 
-    // slightly higher alpha than before for better visibility
     private static final float OVERLAY_ALPHA         = 0.36f;
     private static final float LABEL_MIN_RATING      = 0.35f;
-    private static final float LABEL_FONT_SCALE_OCT  = 0.10f;   // slightly smaller labels
+    private static final float LABEL_FONT_SCALE_OCT  = 0.10f;
     private static final float LABEL_FONT_SCALE_RHO  = 0.09f;
     private static final float DEFAULT_FONT_SCALE    = 0.20f;
 
@@ -78,8 +62,7 @@ public class BotStrategyWidget {
     private static final float BTN_H   =  44f;
     private static final float BTN_GAP =  14f;
 
-    // explanation text colours
-    private static final Color EXP_HEADER = new Color(0.90f, 0.80f, 0.25f, 1f);  // gold
+    private static final Color EXP_HEADER = new Color(0.90f, 0.80f, 0.25f, 1f);
     private static final Color EXP_GREEN  = new Color(0.35f, 0.95f, 0.35f, 1f);
     private static final Color EXP_YELLOW = new Color(0.95f, 0.95f, 0.35f, 1f);
     private static final Color EXP_RED    = new Color(0.95f, 0.35f, 0.35f, 1f);
@@ -114,7 +97,6 @@ public class BotStrategyWidget {
         float worldRight  = camera.position.x + viewport.getWorldWidth()  / 2;
         float worldBottom = camera.position.y - viewport.getWorldHeight() / 2;
         float quitLeft    = worldRight - 90 - 20;
-        // anchor: if pie rule button is also visible, sit further left; otherwise beside quit
         float anchorLeft  = gameState.isPieRuleAvailable()
             ? quitLeft - BTN_W - BTN_GAP
             : quitLeft;
@@ -144,7 +126,7 @@ public class BotStrategyWidget {
         Gdx.gl.glDisable(GL20.GL_BLEND);
 
         batch.begin();
-        font.setColor(Color.WHITE);
+        font.setColor(new Color(0.910f, 0.835f, 0.690f, 1f));
         String label = enabled ? "Hide Strategy" : "Show Strategy";
         GlyphLayout gl = new GlyphLayout(font, label);
         font.draw(batch, label,
@@ -182,7 +164,7 @@ public class BotStrategyWidget {
         ensureRatingsFresh();
 
         try {
-            font.setColor(Color.WHITE);
+            font.setColor(new Color(0.910f, 0.835f, 0.690f, 1f));
             forEachOctagonCell((verts, rating) -> {
                 if (rating >= LABEL_MIN_RATING)
                     drawLabel(batch, font, verts, rating, LABEL_FONT_SCALE_OCT);
@@ -192,39 +174,26 @@ public class BotStrategyWidget {
                     drawLabel(batch, font, verts, rating, LABEL_FONT_SCALE_RHO);
             });
         } finally {
-            font.getData().setScale(DEFAULT_FONT_SCALE); // always restore default
+            font.getData().setScale(DEFAULT_FONT_SCALE);
         }
     }
 
-    /**
-     * draws a brief explanation of the heat map in the right-side panel
-     * call this from Main.renderBoardText() while the SpriteBatch is active
-     * only renders when the strategy overlay is enabled
-     *
-     * the text is positioned below the PLAYERS section in the side panel,
-     * using board geometry derived from the map properties
-     */
+
     public void drawExplanation(SpriteBatch batch, BitmapFont font) {
         if (!enabled) return;
         ensureRatingsFresh();
 
-        // right panel x: same formula used by SidePanelRenderer (boardMaxX + 40)
         int tileW  = octagonLayer.getTileWidth();
         float boardMaxX = (5 + 11) * tileW * unitScale; // board occupies cols 5-15 in TMX
         float x = boardMaxX + 40f;
 
-        // anchor vertically to camera so the legend is always fully visible
-        // place the top of the legend 280 units above worldBottom
-        // (button row sits at worldBottom+20..+64, so +280 gives ample clearance)
         float worldBottom = camera.position.y - viewport.getWorldHeight() / 2f;
         float startY  = worldBottom + 310f;
         float spacing = 25f;
 
-        // - header -
         font.setColor(EXP_HEADER);
         font.draw(batch, "STRATEGY HEAT MAP", x, startY);
 
-        // - colour key (4 lines) -
         font.setColor(EXP_GREEN);
         font.draw(batch, "Green  = high priority",   x, startY - spacing);
 
@@ -234,11 +203,10 @@ public class BotStrategyWidget {
         font.setColor(EXP_RED);
         font.draw(batch, "Red    = low priority",     x, startY - spacing * 3);
 
-        font.setColor(Color.WHITE);
+        font.setColor(new Color(0.910f, 0.835f, 0.690f, 1f));
         font.draw(batch, "Number = score (0-100%)",   x, startY - spacing * 4);
 
-        // - one-line algorithm summary (replaces the 5 truncated lines) -
-        font.setColor(new Color(0.78f, 0.78f, 0.78f, 1f));
+        font.setColor(new Color(0.580f, 0.435f, 0.251f, 1f));
         font.draw(batch, "Via: Dijkstra path costs",  x, startY - spacing * 5.3f);
 
         font.setColor(Color.WHITE);
@@ -328,7 +296,6 @@ public class BotStrategyWidget {
         font.draw(batch, text, c[0] - labelLayout.width / 2f, c[1] + labelLayout.height / 2f);
     }
 
-    /** triangle-fan fill from polygon centroid - mirrors Main.renderHoverOverlay */
     private void fillPolygon(ShapeRenderer sr, float[] verts) {
         int n = verts.length / 2;
         if (n < 3) return;
@@ -351,7 +318,7 @@ public class BotStrategyWidget {
     }
 
     /**
-     * maps a normalised rating [0,1] to a red → yellow → green gradient
+     * maps a normalised rating [0,1] to a red -> yellow -> green gradient
      * higher rating = greener (better for the bot)
      */
     private void setGradientColor(ShapeRenderer sr, double rating) {

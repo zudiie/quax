@@ -8,6 +8,7 @@ import src.softies.PlayerColour;
 
 // draws the right-side information panel: objectives and player assignments
 // in Human vs Bot mode each colour slot is labelled either "You" or "Bot"
+// colour rule: text about WHITE is white, text about BLACK is near-black
 public class SidePanelRenderer {
 
     private final WorldCalculator world;
@@ -18,11 +19,11 @@ public class SidePanelRenderer {
     private static final float OBJ_OFFSET_Y   = 320f; // how far above board centre the header sits
 
     // near-black readable on the grey (0.5, 0.5, 0.5) game background
-    private static final Color NEAR_BLACK = new Color(0.10f, 0.10f, 0.10f, 1f);
+    private static final Color NEAR_BLACK = new Color(0.11f, 0.063f, 0.024f, 1f);
     // gold arrow marking the active player's row
-    private static final Color ARROW_GOLD = new Color(0.90f, 0.72f, 0.12f, 1f);
+    private static final Color ARROW_GOLD = new Color(0.753f, 0.471f, 0.251f, 1f);
     // dimmed colour for the waiting player's name
-    private static final Color MUTED      = new Color(0.50f, 0.50f, 0.50f, 1f);
+    private static final Color MUTED      = new Color(0.580f, 0.435f, 0.251f, 1f);
 
     /**
      * @param world     board bounds used to position the panel to the right of the board
@@ -51,10 +52,10 @@ public class SidePanelRenderer {
      * WHITE bullet is white; BLACK bullet is near-black - matching the stone colours
      */
     private void drawObjectives(SpriteBatch batch, BitmapFont font, float x, float y) {
-        font.setColor(Color.WHITE);
+        font.setColor(new Color(0.910f, 0.835f, 0.690f, 1f));
         font.draw(batch, "OBJECTIVES:", x, y);
 
-        font.setColor(Color.WHITE);
+        font.setColor(new Color(0.910f, 0.835f, 0.690f, 1f));
         font.draw(batch, "• WHITE: Left to Right", x, y - SPACING);
 
         font.setColor(NEAR_BLACK);
