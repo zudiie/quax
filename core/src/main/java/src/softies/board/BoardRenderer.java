@@ -15,6 +15,16 @@ import src.softies.PlayerColour;
 //   SidePanelRenderer - objectives and You/Bot player panel (right side)
 //   WinOverlay        - full-width winner banner drawn on top when the game ends
 // also draws board labels, title and the turn indicator directly
+//
+// TURN INDICATOR POSITION FIX:
+//   The indicator was previously drawn at absolute y = 45f.  With typical viewport
+//   values, worldBottom ≈ -22, making the button row (at worldBottom+20 ≈ -2) and
+//   the indicator almost coincide.  It is now drawn at camera-relative
+//   worldBottom + 100f, which keeps it clearly above all bottom-bar buttons.
+//
+// DRAW ORDER when game is over:
+//   1. board labels + side panel (appear behind the overlay)
+//   2. win overlay (drawn last - visually covers the column letters and title)
 public class BoardRenderer {
 
     public enum InputResult { NONE, RESTART, QUIT }
@@ -116,20 +126,20 @@ public class BoardRenderer {
         font.draw(batch, msg, x, y);
     }
 
-    /** draws row numbers (1–11), column letters (A–K) and the game title - all white */
+    /** draws row numbers (1-11), column letters (A-K) and the game title - all white */
     private void drawBoardLabels(SpriteBatch batch, BitmapFont font) {
         font.setColor(Color.WHITE);
 
         for (int row = 1; row <= 11; row++) {
             float y = 70f + world.boardMinY + (row - 1) * world.tileHeightWorld
                 + world.tileHeightWorld / 2;
-            font.draw(batch, String.valueOf(row), world.boardMinX - 30f, y);
+            font.draw(batch, String.valueOf(row), world.boardMinX - 58f, y);
         }
 
         for (int col = 0; col < 11; col++) {
             float x = -8f + world.boardMinX + col * world.tileWidthWorld
                 + world.tileWidthWorld / 2;
-            font.draw(batch, String.valueOf((char)('A' + col)), x, world.boardMaxY + 90f);
+            font.draw(batch, String.valueOf((char)('A' + col)), x, world.boardMaxY + 116f);
         }
 
         // title reflects the current game mode
@@ -137,6 +147,6 @@ public class BoardRenderer {
             ? "Quax: Human vs Bot"
             : "Quax: Human vs Human";
         GlyphLayout tl = new GlyphLayout(font, title);
-        font.draw(batch, title, world.boardCenterX - tl.width / 2f, world.boardMaxY + 130f);
+        font.draw(batch, title, world.boardCenterX - tl.width / 2f, world.boardMaxY + 160f);
     }
 }

@@ -220,6 +220,7 @@ public class Main extends ApplicationAdapter {
     }
 
     private void renderGame() {
+        drawBoardSides();
         renderTiles();
         renderDiamonds();
         botStrategyWidget.drawOverlayShapes(shapeRenderer);
@@ -237,6 +238,75 @@ public class Main extends ApplicationAdapter {
         batch.begin();
         diamondRenderer.render(batch);
         batch.end();
+    }
+
+    private void drawBoardSides() {
+        // OrthogonalTiledMapRenderer y-flips TMX rows:
+        // tile at TMX row r -> world y = (mapH - r - 1) * tileH
+        // WorldCalculator Y values are raw TMX row numbers, not visual world positions.
+        // X is not flipped, so boardMinX/boardMaxX are already correct.
+        int mapH    = map.getProperties().get("height",     Integer.class);
+        int tileHpx = map.getProperties().get("tileheight", Integer.class);
+        int tileWpx = map.getProperties().get("tilewidth",  Integer.class);
+        float tileH = tileHpx * UNIT_SCALE;
+        float tileW = tileWpx * UNIT_SCALE;
+
+        // board occupies TMX rows 4..14 (11 rows, 0-indexed from top of file)
+        // after y-flip: visual bottom = (mapH-15)*tileH, visual top = (mapH-4)*tileH
+        float vBot   = (mapH - 15) * tileH;
+        float vTop   = (mapH -  4) * tileH;
+        float vLeft  = world.boardMinX;
+        float vRight = world.boardMaxX;
+        float boardW = vRight - vLeft;
+        float boardH = vTop - vBot;
+
+        // strip: outer band width around the board
+        float strip = tileW * 0.48f;
+
+        // bleed: how far each strip extends INSIDE the board boundary.
+        // Octagonal tiles have transparent corners (OCT_CUT = 0.25 of tile),
+        // leaving an 8-unit gap between the tile cell edge and the octagon art.
+        // A bleed of 0.5 tile ensures the strip meets the visible art.
+        // The board tiles render on top and hide the bleed completely.
+        float bleed = tileH * 0.5f;
+
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+        // STEP 1: full frame as BLACK (covers all 4 sides AND all 4 corners)
+        // BLACK wins top-to-bottom, so black on top and bottom is correct.
+        // Corners are black which is visually neutral.
+        shapeRenderer.setColor(0.08f, 0.08f, 0.08f, 1f);
+        // bottom strip - full width + corners, bleeds upward into board
+        shapeRenderer.rect(vLeft - strip, vBot - strip, boardW + strip * 2, strip + bleed);
+        // top strip - full width + corners, bleeds downward into board
+        shapeRenderer.rect(vLeft - strip, vTop - bleed, boardW + strip * 2, strip + bleed);
+        // left strip - full height including corners, bleeds right into board
+        shapeRenderer.rect(vLeft - strip, vBot - strip, strip + bleed, boardH + strip * 2);
+        // right strip - full height including corners, bleeds left into board
+        shapeRenderer.rect(vRight - bleed, vBot - strip, strip + bleed, boardH + strip * 2);
+
+        // STEP 2: overwrite left and right strips with WHITE over the board-height range only.
+        // WHITE wins left-to-right, so white on the sides is correct.
+        // The corners stay black (already painted in step 1).
+        shapeRenderer.setColor(0.92f, 0.90f, 0.86f, 1f);
+        shapeRenderer.rect(vLeft - strip, vBot, strip + bleed, boardH);
+        shapeRenderer.rect(vRight - bleed, vBot, strip + bleed, boardH);
+
+        shapeRenderer.end();
+
+        // STEP 3: copper frame outline around the entire outer border.
+        // Single rectangle drawn in Line mode gives a clean unified edge.
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(0.753f, 0.471f, 0.251f, 1f);
+        shapeRenderer.rect(vLeft - strip, vBot - strip,
+            boardW + strip * 2, boardH + strip * 2);
+        shapeRenderer.end();
+
+        Gdx.gl.glDisable(GL20.GL_BLEND);
     }
 
     private void renderHoverOverlay() {
