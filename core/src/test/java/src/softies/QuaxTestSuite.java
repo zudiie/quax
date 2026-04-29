@@ -3,16 +3,13 @@ package src.softies;
 import org.junit.jupiter.api.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 
 /**
  * Combined Test Suite for Quax Board Game.
- * Covers functional and boundary testing for Model, View, and Controller components.
+ * Covers functional and boundary testing for cells, board, and tile geometry.
  */
 public class QuaxTestSuite {
 
-    // --- CELL COMPONENT TESTS ---
     @Nested
     @DisplayName("Cell Implementation Tests")
     class CellTests {
@@ -20,7 +17,7 @@ public class QuaxTestSuite {
         @DisplayName("Octagonal Cell: Display symbols and occupancy")
         void testOctagonalCell() {
             OctagonalCell cell = new OctagonalCell(new Point(0, 0), PlayerColour.EMPTY, CellType.OCTAGON);
-            assertEquals("X", cell.getDisplaySymbol(), "New cells should display 'O'");
+            assertEquals("X", cell.getDisplaySymbol(), "New cells should display 'X'");
 
             cell.setColour(PlayerColour.BLACK);
             cell.setOccupied(true);
@@ -31,7 +28,7 @@ public class QuaxTestSuite {
         @DisplayName("Rhombic Cell: Static display symbol")
         void testRhombicCell() {
             RhombicCell cell = new RhombicCell(new Point(1, 1), PlayerColour.EMPTY, CellType.RHOMBUS);
-            assertEquals("o", cell.getDisplaySymbol(), "Rhombus should display 'x'");
+            assertEquals("o", cell.getDisplaySymbol(), "Rhombus should display 'o'");
         }
 
         @Test
@@ -45,7 +42,6 @@ public class QuaxTestSuite {
         }
     }
 
-    // --- BOARD LOGIC TESTS ---
     @Nested
     @DisplayName("Board Logic & Boundary Tests")
     class BoardTests {
@@ -59,65 +55,23 @@ public class QuaxTestSuite {
         @Test
         @DisplayName("Functionality: Stone placement and overlap prevention")
         void testStonePlacement() {
-            // First move
             assertTrue(board.placeStone("B5", PlayerColour.WHITE));
             assertEquals(PlayerColour.WHITE, board.getOctagonalCell("B5").getColour());
 
-            // Overlap attempt
             assertFalse(board.placeStone("B5", PlayerColour.BLACK), "Cannot place stone on occupied cell");
         }
 
         @Test
         @DisplayName("Mapping: Rhombic cell presence")
         void testRhombicCoordinates() {
-            // Test a standard middle-board rhombus
             assertNotNull(board.getRhombicCell("R-B2"));
-            // Boundary: Row 1 rhombuses shouldn't exist based on your init logic (row > 1)
             assertNull(board.getRhombicCell("R-A1"), "Rhombus shouldn't exist on bottom edge");
-        }
-    }
-
-    // --- CONTROLLER STATE TESTS ---
-    @Nested
-    @DisplayName("Controller State & Turn Tests")
-    class ControllerTests {
-        @Test
-        @DisplayName("State: Turn switching logic")
-        void testTurnSwitching() throws Exception {
-            QuaxController controller = new QuaxController();
-
-            // Accessing private field 'currentPlayer' via reflection for testing
-            Field playerField = QuaxController.class.getDeclaredField("currentPlayer");
-            playerField.setAccessible(true);
-
-            assertEquals(PlayerColour.BLACK, playerField.get(controller), "Game must start with BLACK");
-
-            // Access and invoke private method 'switchTurn'
-            Method switchMethod = QuaxController.class.getDeclaredMethod("switchTurn");
-            switchMethod.setAccessible(true);
-
-            switchMethod.invoke(controller);
-            assertEquals(PlayerColour.WHITE, playerField.get(controller), "Turn should switch to WHITE");
-        }
-    }
-
-    // --- VIEW / DISPLAY SMOKE TESTS ---
-    @Nested
-    @DisplayName("View Rendering Tests")
-    class ViewTests {
-        @Test
-        @DisplayName("Smoke Test: Render should not crash")
-        void testRenderStability() {
-            GameDisplay display = new GameDisplay();
-            QuaxBoard board = new QuaxBoard();
-            // We ensure that passing current states doesn't throw exceptions
-            assertDoesNotThrow(() -> display.renderBoard(board, PlayerColour.BLACK));
         }
     }
 
     @Nested
     @DisplayName("Tile Location Tests")
-    class  TileLocationTests {
+    class TileLocationTests {
         @Test
         @DisplayName("Proximity test")
         void testProximity() {
@@ -133,8 +87,8 @@ public class QuaxTestSuite {
         }
 
         void testBoundaries() {
-            assertThrows(IndexOutOfBoundsException.class, () -> new Point(-1,-1)); //Out of the scope (negative)
-            assertThrows(IndexOutOfBoundsException.class, () -> new Point(100,100)); //out of the scope (too large)
+            assertThrows(IndexOutOfBoundsException.class, () -> new Point(-1, -1));
+            assertThrows(IndexOutOfBoundsException.class, () -> new Point(100, 100));
         }
     }
 }

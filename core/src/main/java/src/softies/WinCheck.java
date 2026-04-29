@@ -67,10 +67,9 @@ public class WinCheck {
         if (visited.contains(cellKey)) return false;
         visited.add(cellKey);
 
-        // strip the "R-" prefix to get the coordinate part for both cell types
-        String labelPart = isRhombus ? cellKey.substring(2) : cellKey;
-        int col = labelPart.charAt(0) - 'A';
-        int row = Integer.parseInt(labelPart.substring(1));
+        String coordPart = isRhombus ? cellKey.substring(2) : cellKey;
+        int col = coordPart.charAt(0) - 'A';
+        int row = Integer.parseInt(coordPart.substring(1));
 
         // win condition is only checked at octagonal cells (edges of the board are octagonal)
         if (!isRhombus) {
@@ -84,18 +83,17 @@ public class WinCheck {
             : getOctagonNeighbours(col, row);
 
         for (String[] neighbour : neighbours) {
-            String nKey      = neighbour[0];
-            boolean nIsRhomb = neighbour[1].equals("R");
+            String  neighbourKey       = neighbour[0];
+            boolean neighbourIsRhombus = neighbour[1].equals("R");
 
-            if (visited.contains(nKey)) continue;
+            if (visited.contains(neighbourKey)) continue;
 
-            // look up the neighbour in the appropriate map and check its colour
-            Cell nCell = nIsRhomb
-                ? board.getRhombusCells().get(nKey)
-                : board.getOctagonCells().get(nKey);
+            Cell neighbourCell = neighbourIsRhombus
+                ? board.getRhombusCells().get(neighbourKey)
+                : board.getOctagonCells().get(neighbourKey);
 
-            if (nCell != null && nCell.getColour() == colour) {
-                if (dfs(nKey, colour, visited, nIsRhomb)) return true;
+            if (neighbourCell != null && neighbourCell.getColour() == colour) {
+                if (dfs(neighbourKey, colour, visited, neighbourIsRhombus)) return true;
             }
         }
 
