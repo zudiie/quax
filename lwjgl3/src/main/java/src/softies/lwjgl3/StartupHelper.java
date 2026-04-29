@@ -207,9 +207,7 @@ public class StartupHelper {
 			if (!inheritIO) processBuilder.start();
 			else processBuilder.inheritIO().start().waitFor();
 		} catch (Exception e) {
-			System.err.println("There was a problem restarting the JVM.");
-			// noinspection CallToPrintStackTrace
-			e.printStackTrace();
+			System.err.println("There was a problem restarting the JVM: " + e);
 		}
 
 		return true;

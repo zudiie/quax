@@ -278,24 +278,21 @@ public class QuaxSprintFourTest {
 
         @Test
         @DisplayName("SR8.1: Bot prefers central cells when scores are equal")
-            // On an empty board the combined Dijkstra scores are identical for all cells,
-            // so the bot should pick from the central region rather than a corner.
+            // On an empty board all combined Dijkstra scores tie, so the bot's centrality
+            // tie-breaker should always pick a cell in the central region around F6.
         void testBotPrefersCenter() {
-            // Check across 20 games that the majority of opening moves are central
-            int centralCount = 0;
-            for (int i = 0; i < 20; i++) {
-                QuaxBoard board = new QuaxBoard();
-                GameState state = new GameState();
-                BotPlayer bot   = new BotPlayer(board, state);
-                String move     = bot.selectMove();
-                if (move != null && !move.startsWith("R-")) {
-                    int col = move.charAt(0) - 'A';
-                    int row = Integer.parseInt(move.substring(1));
-                    if (col >= 3 && col <= 7 && row >= 4 && row <= 8) centralCount++;
-                }
-            }
-            assertTrue(centralCount >= 10,
-                "Bot should prefer central cells - only " + centralCount + "/20 were central");
+            QuaxBoard board = new QuaxBoard();
+            GameState state = new GameState();
+            BotPlayer bot   = new BotPlayer(board, state);
+            String move     = bot.selectMove();
+
+            assertNotNull(move, "selectMove() must not be null on an empty board");
+            assertFalse(move.startsWith("R-"),
+                "Opening move should be an octagon, not a rhombus");
+            int col = move.charAt(0) - 'A';
+            int row = Integer.parseInt(move.substring(1));
+            assertTrue(col >= 3 && col <= 7 && row >= 4 && row <= 8,
+                "Bot opening move should be central, got " + move);
         }
 
         @Test
