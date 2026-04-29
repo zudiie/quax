@@ -16,14 +16,14 @@ public class SidePanelRenderer {
 
     private static final float PANEL_OFFSET_X = 40f;  // distance to the right of the board
     private static final float SPACING        = 40f;  // vertical gap between lines
-    private static final float OBJ_OFFSET_Y   = 250f; // how far above board centre the header sits
+    private static final float OBJ_OFFSET_Y   = 320f; // how far above board centre the header sits
 
     // near-black readable on the grey (0.5, 0.5, 0.5) game background
-    private static final Color NEAR_BLACK = new Color(0.10f, 0.10f, 0.10f, 1f);
+    private static final Color NEAR_BLACK = new Color(0.11f, 0.063f, 0.024f, 1f);
     // gold arrow marking the active player's row
-    private static final Color ARROW_GOLD = new Color(0.90f, 0.72f, 0.12f, 1f);
+    private static final Color ARROW_GOLD = new Color(0.753f, 0.471f, 0.251f, 1f);
     // dimmed colour for the waiting player's name
-    private static final Color MUTED      = new Color(0.50f, 0.50f, 0.50f, 1f);
+    private static final Color MUTED      = new Color(0.580f, 0.435f, 0.251f, 1f);
 
     /**
      * @param world     board bounds used to position the panel to the right of the board
@@ -35,7 +35,7 @@ public class SidePanelRenderer {
     }
 
     /**
-     * draws the full right-side panel — call between batch.begin() and batch.end()
+     * draws the full right-side panel - call between batch.begin() and batch.end()
      * @param batch active SpriteBatch
      * @param font  font for all panel text
      */
@@ -49,13 +49,13 @@ public class SidePanelRenderer {
 
     /**
      * draws the OBJECTIVES header and the two win-condition bullet points
-     * WHITE bullet is white; BLACK bullet is near-black — matching the stone colours
+     * WHITE bullet is white; BLACK bullet is near-black - matching the stone colours
      */
     private void drawObjectives(SpriteBatch batch, BitmapFont font, float x, float y) {
-        font.setColor(Color.WHITE);
+        font.setColor(new Color(0.910f, 0.835f, 0.690f, 1f));
         font.draw(batch, "OBJECTIVES:", x, y);
 
-        font.setColor(Color.WHITE);
+        font.setColor(new Color(0.910f, 0.835f, 0.690f, 1f));
         font.draw(batch, "• WHITE: Left to Right", x, y - SPACING);
 
         font.setColor(NEAR_BLACK);
@@ -73,12 +73,12 @@ public class SidePanelRenderer {
         PlayerColour current = gameState.getCurrentPlayer();
         PlayerColour botCol  = gameState.getBotColour();
 
-        // draw BLACK row — label it "Bot" if bot is BLACK, "You" otherwise
+        // draw BLACK row - label it "Bot" if bot is BLACK, "You" otherwise
         boolean blackActive = (current == PlayerColour.BLACK);
         String  blackLabel  = (botCol == PlayerColour.BLACK) ? "Bot" : "You";
         drawPlayerRow(batch, font, blackLabel, PlayerColour.BLACK, blackActive, x, y - SPACING * 1.3f);
 
-        // draw WHITE row — label it "Bot" if bot is WHITE, "You" otherwise
+        // draw WHITE row - label it "Bot" if bot is WHITE, "You" otherwise
         boolean whiteActive = (current == PlayerColour.WHITE);
         String  whiteLabel  = (botCol == PlayerColour.WHITE) ? "Bot" : "You";
         drawPlayerRow(batch, font, whiteLabel, PlayerColour.WHITE, whiteActive, x, y - SPACING * 2.5f);
@@ -103,7 +103,7 @@ public class SidePanelRenderer {
             font.draw(batch, "->", x, y);
         }
 
-        // name — white when active, muted when waiting
+        // name - white when active, muted when waiting
         font.setColor(active ? Color.WHITE : MUTED);
         font.draw(batch, name, x + 28f, y);
 

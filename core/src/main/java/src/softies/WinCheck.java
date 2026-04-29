@@ -15,7 +15,7 @@ public class WinCheck {
     private final QuaxBoard board;
 
     /**
-     * @param board the live board model — queried for cell colours during DFS
+     * @param board the live board model - queried for cell colours during DFS
      */
     public WinCheck(QuaxBoard board) {
         this.board = board;
@@ -58,7 +58,7 @@ public class WinCheck {
      * terminates when the target edge is reached or all reachable cells have been visited
      * @param cellKey      the label of the current cell (e.g. "A1" or "R-B3")
      * @param colour       the player colour we are tracing for
-     * @param visited      set of already-visited keys — prevents cycles
+     * @param visited      set of already-visited keys - prevents cycles
      * @param isRhombus    true if this cell is rhombic, false if octagonal
      * @return true if the target edge is reachable from here
      */
@@ -111,13 +111,13 @@ public class WinCheck {
     private List<String[]> getOctagonNeighbours(int col, int row) {
         List<String[]> nb = new ArrayList<>();
 
-        // orthogonal neighbours — cells that share a flat edge
+        // orthogonal neighbours - cells that share a flat edge
         if (col > 0)              nb.add(new String[]{ QuaxBoard.generateLabel(col - 1, row), "O" });
         if (col < BOARD_SIZE - 1) nb.add(new String[]{ QuaxBoard.generateLabel(col + 1, row), "O" });
         if (row > 1)              nb.add(new String[]{ QuaxBoard.generateLabel(col,     row - 1), "O" });
         if (row < BOARD_SIZE)     nb.add(new String[]{ QuaxBoard.generateLabel(col,     row + 1), "O" });
 
-        // diagonal rhombus neighbours — cells that share a corner via a rhombus tile
+        // diagonal rhombus neighbours - cells that share a corner via a rhombus tile
         // each rhombus key is "R-" + the label of its bottom-left octagon
         if (col < BOARD_SIZE - 1 && row > 1)
             nb.add(new String[]{ "R-" + QuaxBoard.generateLabel(col,     row),     "R" });

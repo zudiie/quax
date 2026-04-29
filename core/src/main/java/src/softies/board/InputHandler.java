@@ -8,8 +8,8 @@ import src.softies.QuaxBoard;
 import src.softies.WinCheck;
 
 // coordinates the two board-input subsystems:
-//   HoverDetector — tracks which cell is under the mouse each frame
-//   MoveHandler   — processes clicks, updates the model and tiles, checks for a win
+//   HoverDetector - tracks which cell is under the mouse each frame
+//   MoveHandler   - processes clicks, updates the model and tiles, checks for a win
 // also exposes placeBotMove() so Main can apply a bot decision programmatically
 public class InputHandler {
 
@@ -41,7 +41,7 @@ public class InputHandler {
     // -------------------------------------------------------------------------
 
     /**
-     * updates the hover polygon from the current mouse position — call once per frame
+     * updates the hover polygon from the current mouse position - call once per frame
      * @param screenX raw x from Gdx.input.getX()
      * @param screenY raw y from Gdx.input.getY()
      */
@@ -70,7 +70,7 @@ public class InputHandler {
     }
 
     // -------------------------------------------------------------------------
-    // bot move — programmatic placement without a screen click
+    // bot move - programmatic placement without a screen click
     // -------------------------------------------------------------------------
 
     /**

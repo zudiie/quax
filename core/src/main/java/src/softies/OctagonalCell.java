@@ -4,7 +4,7 @@ package src.softies;
 // it extends Cell and will eventually hold geometry info for rendering and neighbour lookups
 public class OctagonalCell extends Cell {
 
-    // the visual radius of the octagon — used for hit detection or rendering later
+    // the visual radius of the octagon - used for hit detection or rendering later
     private final int radius = 2;
     private Point center;
     private Direction directions;

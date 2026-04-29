@@ -17,7 +17,7 @@ public class WorldCalculator {
     public float mapWidthWorld;
     public float mapHeightWorld;
 
-    // the playable board area — columns 5-15, rows 4-14 (0-based)
+    // the playable board area - columns 5-15, rows 4-14 (0-based)
     public float boardMinX, boardMinY, boardMaxX, boardMaxY;
     public float boardCenterX, boardCenterY;
     public float boardWidth, boardHeight;
@@ -34,7 +34,7 @@ public class WorldCalculator {
      * reads the map and octagon layer properties and works out all the world-space coordinates
      * call this once during setup after the map has been loaded
      * @param map the loaded TiledMap with width/height/tile size properties
-     * @param octagonLayer the octagon tile layer — used to grab any layer-level offsets
+     * @param octagonLayer the octagon tile layer - used to grab any layer-level offsets
      */
     public void compute(TiledMap map, TiledMapTileLayer octagonLayer) {
         // grab the raw pixel dimensions from the map properties

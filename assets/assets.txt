@@ -1,3 +1,4 @@
+CormorantGaramond-Bold.ttf
 META-INF/MANIFEST.MF
 PolygonalGrid.tmx
 QuaxTiles.tsx

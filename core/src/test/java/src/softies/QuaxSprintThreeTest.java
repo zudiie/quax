@@ -31,7 +31,7 @@ public class QuaxSprintThreeTest {
      *          Partially tested below (currentPlayer field); full display is MANUAL.
      */
     @Nested
-    @DisplayName("Pie Rule Tests — GameState.java  (SR3, SR4)")
+    @DisplayName("Pie Rule Tests - GameState.java  (SR3, SR4)")
     class PieRuleTests {
 
         @Test
@@ -119,7 +119,7 @@ public class QuaxSprintThreeTest {
         }
 
         @Test
-        @DisplayName("SR3: setFirstMoveMade() is idempotent — safe to call more than once")
+        @DisplayName("SR3: setFirstMoveMade() is idempotent - safe to call more than once")
             // Calling setFirstMoveMade() twice must not corrupt state
         void testFirstMoveMadeIsIdempotent() {
             GameState state = new GameState();
@@ -146,7 +146,7 @@ public class QuaxSprintThreeTest {
      *   - Diagonal adjacency connects only when a same-colour rhombus is present.
      */
     @Nested
-    @DisplayName("Win Detection Tests — WinCheck.java  (SR6, SR7)")
+    @DisplayName("Win Detection Tests - WinCheck.java  (SR6, SR7)")
     class WinDetectionTests {
 
         private QuaxBoard board;
@@ -245,7 +245,7 @@ public class QuaxSprintThreeTest {
         }
 
         @Test
-        @DisplayName("SR6 & SR7: Mixed partial stones on the board — no false win for either player")
+        @DisplayName("SR6 & SR7: Mixed partial stones on the board - no false win for either player")
             // Neither player has completed their crossing; no winner must be reported.
         void testNoFalseWinWithPartialStones() {
             board.placeStone("A1",  PlayerColour.BLACK);
@@ -272,7 +272,7 @@ public class QuaxSprintThreeTest {
 
 
     // ==========================================================
-    // SECTION 3 — END-OF-GAME STATE  (SR6, SR7)
+    // SECTION 3 - END-OF-GAME STATE  (SR6, SR7)
     // ==========================================================
 
     /**
@@ -284,7 +284,7 @@ public class QuaxSprintThreeTest {
      * verify the model state that drives this guard.
      */
     @Nested
-    @DisplayName("End-of-Game State Tests — GameState.java  (SR6, SR7)")
+    @DisplayName("End-of-Game State Tests - GameState.java  (SR6, SR7)")
     class EndOfGameTests {
 
         @Test
@@ -332,7 +332,7 @@ public class QuaxSprintThreeTest {
         }
 
         @Test
-        @DisplayName("SR6 & SR7: Board interaction guard — isGameOver() true blocks moves in InputHandler")
+        @DisplayName("SR6 & SR7: Board interaction guard - isGameOver() true blocks moves in InputHandler")
             // InputHandler.handleBoardClick() guards on gameState.isGameOver().
         void testGameOverFlagPreventsMovesViaInputHandlerGuard() {
             GameState state = new GameState();
@@ -433,9 +433,9 @@ public class QuaxSprintThreeTest {
             // Board initialisation: rhombus cells only exist where row > 1.
         void testRhombusCellAbsentOnBottomEdge() {
             assertNull(board.getRhombicCell("R-A1"),
-                "R-A1 must not exist — rhombus cells are not created for row 1");
+                "R-A1 must not exist - rhombus cells are not created for row 1");
             assertNull(board.getRhombicCell("R-K1"),
-                "R-K1 must not exist — rhombus cells are not created for row 1");
+                "R-K1 must not exist - rhombus cells are not created for row 1");
         }
 
         @Test
@@ -443,9 +443,9 @@ public class QuaxSprintThreeTest {
             // Board initialisation: rhombus cells only exist where col < BOARD_SIZE - 1.
         void testRhombusCellAbsentOnRightEdge() {
             assertNull(board.getRhombicCell("R-K5"),
-                "R-K5 must not exist — rhombus cells are not created for the last column");
+                "R-K5 must not exist - rhombus cells are not created for the last column");
             assertNull(board.getRhombicCell("R-K11"),
-                "R-K11 must not exist — rhombus cells are not created for the last column");
+                "R-K11 must not exist - rhombus cells are not created for the last column");
         }
 
         @Test
@@ -453,7 +453,7 @@ public class QuaxSprintThreeTest {
             // The first valid rhombus cell on column A is R-A2.
         void testRhombusCellExistsAtMinimumValidPosition() {
             assertNotNull(board.getRhombicCell("R-A2"),
-                "R-A2 must exist — it is the first valid rhombus cell in column A");
+                "R-A2 must exist - it is the first valid rhombus cell in column A");
         }
 
         @Test

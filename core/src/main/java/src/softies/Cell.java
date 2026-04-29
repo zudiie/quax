@@ -1,6 +1,6 @@
 package src.softies;
 
-// the base class for all cells on the Quax board — both octagonal and rhombic cells extend this
+// the base class for all cells on the Quax board - both octagonal and rhombic cells extend this
 public class Cell {
 
     protected PlayerColour colour;
@@ -11,7 +11,7 @@ public class Cell {
     /**
      * sets up a cell with its position, colour and shape type
      * @param label the board coordinate (e.g. A1) as a Point
-     * @param colour the starting colour — usually EMPTY at first
+     * @param colour the starting colour - usually EMPTY at first
      * @param cellType whether this is an OCTAGON or RHOMBUS cell
      */
     Cell(Point label, PlayerColour colour, CellType cellType) {
@@ -44,7 +44,7 @@ public class Cell {
     }
 
     /**
-     * updates the colour of this cell — used when a player places a stone
+     * updates the colour of this cell - used when a player places a stone
      * @param colour the new colour to assign
      */
     public void setColour(PlayerColour colour) {
@@ -52,7 +52,7 @@ public class Cell {
     }
 
     /**
-     * marks the cell as occupied or free — flipping this to true locks the cell
+     * marks the cell as occupied or free - flipping this to true locks the cell
      * @param isOccupied true to mark as taken, false to clear it
      */
     public void setOccupied(boolean isOccupied) {
