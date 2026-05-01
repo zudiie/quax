@@ -169,7 +169,7 @@ public class QuaxSprintThreeTest {
         }
 
         @Test
-        @DisplayName("SR6: BLACK wins when a complete vertical column connects rows 1–11")
+        @DisplayName("SR6: BLACK wins when a complete vertical column connects rows 1-11")
             // a straight chain down column A satisfies top-to-bottom connectivity.
         void testBlackWinsWithFullVerticalColumn() {
             for (int row = 1; row <= 11; row++) {
@@ -180,7 +180,7 @@ public class QuaxSprintThreeTest {
         }
 
         @Test
-        @DisplayName("SR7: WHITE wins when a complete horizontal row connects columns A–K")
+        @DisplayName("SR7: WHITE wins when a complete horizontal row connects columns A-K")
             // A straigh chain across row 1 satisfies left-to-right connectivity
         void testWhiteWinsWithFullHorizontalRow() {
             String[] cols = {"A","B","C","D","E","F","G","H","I","J","K"};
@@ -192,7 +192,7 @@ public class QuaxSprintThreeTest {
         }
 
         @Test
-        @DisplayName("SR6: BLACK does NOT win with an incomplete vertical chain (rows 1–10 only)")
+        @DisplayName("SR6: BLACK does NOT win with an incomplete vertical chain (rows 1-10 only)")
             // Chain must reach row 11. stopping at row 10 is insufficient
         void testBlackDoesNotWinIncompleteChain() {
             for (int row = 1; row <= 10; row++) {
@@ -203,7 +203,7 @@ public class QuaxSprintThreeTest {
         }
 
         @Test
-        @DisplayName("SR7: WHITE does NOT win with an incomplete horizontal chain (cols A–J only)")
+        @DisplayName("SR7: WHITE does NOT win with an incomplete horizontal chain (cols A-J only)")
             // Chain must reach column K. stopping at J is insufficient
         void testWhiteDoesNotWinIncompleteChain() {
             String[] cols = {"A","B","C","D","E","F","G","H","I","J"};

@@ -97,7 +97,7 @@ public class BotPlayer {
      * rating bands:
      *   winning move          → 1.00
      *   blocks opponent win   → 0.95
-     *   other candidates      → 0.10 – 0.90  (based on combined Dijkstra score)
+     *   other candidates      → 0.10 - 0.90  (based on combined Dijkstra score)
      *   unreachable / illegal → 0.00
      */
     public Map<String, Double> rateAllMoves() {

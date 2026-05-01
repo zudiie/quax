@@ -177,7 +177,7 @@ public class QuaxSprintFourTest {
             GameState state = stateWithBotAs(PlayerColour.BLACK);
             BotPlayer bot   = new BotPlayer(board, state);
 
-            // Place BLACK stones in rows 1–10 of column F (index 5)
+            // Place BLACK stones in rows 1-10 of column F (index 5)
             // Only row 11 is missing - placing there wins for BLACK (top-to-bottom)
             for (int row = 1; row <= 10; row++) {
                 board.placeStone(QuaxBoard.generateLabel(5, row), PlayerColour.BLACK);
@@ -200,7 +200,7 @@ public class QuaxSprintFourTest {
             GameState state = stateWithBotAs(PlayerColour.WHITE);
             BotPlayer bot   = new BotPlayer(board, state);
 
-            // Place BLACK stones in rows 1–10 of column F - BLACK wins if it plays F11
+            // Place BLACK stones in rows 1-10 of column F - BLACK wins if it plays F11
             for (int row = 1; row <= 10; row++) {
                 board.placeStone(QuaxBoard.generateLabel(5, row), PlayerColour.BLACK);
             }

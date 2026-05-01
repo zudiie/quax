@@ -14,16 +14,6 @@ import src.softies.PlayerColour;
 //   SidePanelRenderer - objectives and You/Bot player panel (right side)
 //   WinOverlay        - full-width winner banner drawn on top when the game ends
 // also draws board labels, title and the turn indicator directly
-//
-// TURN INDICATOR POSITION FIX:
-//   The indicator was previously drawn at absolute y = 45f.  With typical viewport
-//   values, worldBottom ≈ -22, making the button row (at worldBottom+20 ≈ -2) and
-//   the indicator almost coincide.  It is now drawn at camera-relative
-//   worldBottom + 100f, which keeps it clearly above all bottom-bar buttons.
-//
-// DRAW ORDER when game is over:
-//   1. board labels + side panel (appear behind the overlay)
-//   2. win overlay (drawn last - visually covers the column letters and title)
 public class BoardRenderer {
 
     public enum InputResult { NONE, RESTART, QUIT }

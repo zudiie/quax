@@ -18,7 +18,6 @@ public class SidePanelRenderer {
     private static final float SPACING        = 40f;  // vertical gap between lines
     private static final float OBJ_OFFSET_Y   = 320f; // how far above board centre the header sits
 
-    // near-black readable on the grey (0.5, 0.5, 0.5) game background
     private static final Color NEAR_BLACK = new Color(0.11f, 0.063f, 0.024f, 1f);
     // gold arrow marking the active player's row
     private static final Color ARROW_GOLD = new Color(0.753f, 0.471f, 0.251f, 1f);

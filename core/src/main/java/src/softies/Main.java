@@ -182,7 +182,7 @@ public class Main extends ApplicationAdapter {
     }
 
     private void clearScreen() {
-        Gdx.gl.glClearColor(0.227f, 0.133f, 0.063f, 1f);
+        Gdx.gl.glClearColor(0.34f, 0.17f, 0.095f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
     }
 
@@ -241,73 +241,69 @@ public class Main extends ApplicationAdapter {
         batch.end();
     }
 
+    // value object holding all computed measurements needed to draw the board border
+    private static final class BoardSideBounds {
+        final float vBot, vTop, vLeft, vRight;
+        final float boardW, boardH, strip, bleed;
+
+        BoardSideBounds(float vBot, float vTop, float vLeft, float vRight,
+                        float boardW, float boardH, float strip, float bleed) {
+            this.vBot   = vBot;   this.vTop   = vTop;
+            this.vLeft  = vLeft;  this.vRight = vRight;
+            this.boardW = boardW; this.boardH = boardH;
+            this.strip  = strip;  this.bleed  = bleed;
+        }
+    }
+
     private void drawBoardSides() {
-        // OrthogonalTiledMapRenderer y-flips TMX rows:
-        // tile at TMX row r -> world y = (mapH - r - 1) * tileH
-        // WorldCalculator Y values are raw TMX row numbers, not visual world positions.
-        // X is not flipped, so boardMinX/boardMaxX are already correct.
-        int mapH    = map.getProperties().get("height",     Integer.class);
-        int tileHeightPx = map.getProperties().get("tileheight", Integer.class);
-        int tileWidthPx  = map.getProperties().get("tilewidth",  Integer.class);
-        float tileH = tileHeightPx * UNIT_SCALE;
-        float tileW = tileWidthPx  * UNIT_SCALE;
-
-        // board occupies TMX rows 4..14 (11 rows, 0-indexed from top of file)
-        // after y-flip: visual bottom = (mapH-15)*tileH, visual top = (mapH-4)*tileH
-        float vBot   = (mapH - 15) * tileH;
-        float vTop   = (mapH -  4) * tileH;
-        float vLeft  = world.boardMinX;
-        float vRight = world.boardMaxX;
-        float boardW = vRight - vLeft;
-        float boardH = vTop - vBot;
-
-        // strip: outer band width around the board
-        float strip = tileW * 0.48f;
-
-        // bleed: how far each strip extends INSIDE the board boundary.
-        // Octagonal tiles have transparent corners (OCT_CUT = 0.25 of tile),
-        // leaving an 8-unit gap between the tile cell edge and the octagon art.
-        // A bleed of 0.5 tile ensures the strip meets the visible art.
-        // The board tiles render on top and hide the bleed completely.
-        float bleed = tileH * 0.5f;
-
+        BoardSideBounds b = computeBoardSideBounds();
         shapeRenderer.setProjectionMatrix(camera.combined);
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-
-        // STEP 1: full frame as BLACK (covers all 4 sides AND all 4 corners)
-        // BLACK wins top-to-bottom, so black on top and bottom is correct.
-        // Corners are black which is visually neutral.
-        shapeRenderer.setColor(0.08f, 0.08f, 0.08f, 1f);
-        // bottom strip - full width + corners, bleeds upward into board
-        shapeRenderer.rect(vLeft - strip, vBot - strip, boardW + strip * 2, strip + bleed);
-        // top strip - full width + corners, bleeds downward into board
-        shapeRenderer.rect(vLeft - strip, vTop - bleed, boardW + strip * 2, strip + bleed);
-        // left strip - full height including corners, bleeds right into board
-        shapeRenderer.rect(vLeft - strip, vBot - strip, strip + bleed, boardH + strip * 2);
-        // right strip - full height including corners, bleeds left into board
-        shapeRenderer.rect(vRight - bleed, vBot - strip, strip + bleed, boardH + strip * 2);
-
-        // STEP 2: overwrite left and right strips with WHITE over the board-height range only.
-        // WHITE wins left-to-right, so white on the sides is correct.
-        // The corners stay black (already painted in step 1).
-        shapeRenderer.setColor(0.92f, 0.90f, 0.86f, 1f);
-        shapeRenderer.rect(vLeft - strip, vBot, strip + bleed, boardH);
-        shapeRenderer.rect(vRight - bleed, vBot, strip + bleed, boardH);
-
+        drawBlackGoalEdges(b);
+        drawWhiteGoalEdges(b);
         shapeRenderer.end();
+        drawBoardFrameOutline(b);
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+    }
 
-        // STEP 3: copper frame outline around the entire outer border.
-        // Single rectangle drawn in Line mode gives a clean unified edge.
+    // OrthogonalTiledMapRenderer y-flips TMX rows: tile at row r appears at world y = (mapH-r-1)*tileH
+    // WorldCalculator Y values are raw TMX row numbers and do not reflect the visual flip
+    private BoardSideBounds computeBoardSideBounds() {
+        int mapH    = getMapProperty("height");
+        float tileH = getMapProperty("tileheight") * UNIT_SCALE;
+        float tileW = getMapProperty("tilewidth")  * UNIT_SCALE;
+        float vBot  = (mapH - 15) * tileH;
+        float vTop  = (mapH -  4) * tileH;
+        float boardW = world.boardMaxX - world.boardMinX;
+        return new BoardSideBounds(vBot, vTop, world.boardMinX, world.boardMaxX,
+            boardW, vTop - vBot, tileW * 0.48f, tileH * 0.5f);
+    }
+
+    private void drawBlackGoalEdges(BoardSideBounds b) {
+        shapeRenderer.setColor(0.08f, 0.08f, 0.08f, 1f);
+        shapeRenderer.rect(b.vLeft - b.strip, b.vBot - b.strip, b.boardW + b.strip * 2, b.strip + b.bleed);
+        shapeRenderer.rect(b.vLeft - b.strip, b.vTop - b.bleed, b.boardW + b.strip * 2, b.strip + b.bleed);
+        shapeRenderer.rect(b.vLeft - b.strip, b.vBot - b.strip, b.strip + b.bleed, b.boardH + b.strip * 2);
+        shapeRenderer.rect(b.vRight - b.bleed, b.vBot - b.strip, b.strip + b.bleed, b.boardH + b.strip * 2);
+    }
+
+    private void drawWhiteGoalEdges(BoardSideBounds b) {
+        shapeRenderer.setColor(0.92f, 0.90f, 0.86f, 1f);
+        shapeRenderer.rect(b.vLeft - b.strip, b.vBot, b.strip + b.bleed, b.boardH);
+        shapeRenderer.rect(b.vRight - b.bleed, b.vBot, b.strip + b.bleed, b.boardH);
+    }
+
+    private void drawBoardFrameOutline(BoardSideBounds b) {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         shapeRenderer.setColor(0.753f, 0.471f, 0.251f, 1f);
-        shapeRenderer.rect(vLeft - strip, vBot - strip,
-            boardW + strip * 2, boardH + strip * 2);
+        shapeRenderer.rect(b.vLeft - b.strip, b.vBot - b.strip, b.boardW + b.strip * 2, b.boardH + b.strip * 2);
         shapeRenderer.end();
+    }
 
-        Gdx.gl.glDisable(GL20.GL_BLEND);
+    private int getMapProperty(String key) {
+        return map.getProperties().get(key, Integer.class);
     }
 
     private void renderHoverOverlay() {
