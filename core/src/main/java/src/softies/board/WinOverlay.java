@@ -140,7 +140,7 @@ public class WinOverlay {
         // headline - e.g. "BLACK wins!"
         String headline = winner + " wins!";
         GlyphLayout hl = new GlyphLayout(font, headline);
-        font.setColor(winner == PlayerColour.BLACK ? NEAR_BLACK : Color.WHITE);
+        font.setColor(new Color(0.910f, 0.835f, 0.690f, 1f));
         font.draw(batch, headline, bX + (bW - hl.width) / 2f, bY + BANNER_H - 22f);
 
         // sub-message - differs based on whether the bot or the human won
