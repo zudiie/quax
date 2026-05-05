@@ -6,9 +6,6 @@ import java.util.Random;
 
 // holds the live state of the game - current player, colour assignments, pie rule,
 // game-over state, and which colour the bot is playing as
-//
-// gameMode ALWAYS defaults to HUMAN_VS_BOT because the welcome screen no longer
-// offers a mode-selection step - the only mode available is Human vs Bot
 public class GameState {
 
     // each player's currently assigned colour - these swap when the pie rule is activated

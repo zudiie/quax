@@ -5,7 +5,6 @@ import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import src.softies.QuaxBoard;
-import src.softies.WinCheck;
 
 // coordinates the two board-input subsystems:
 //   HoverDetector - tracks which cell is under the mouse each frame
