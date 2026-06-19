@@ -138,14 +138,14 @@ public class BotPlayer {
             String key = e.getKey();
             if (ratings.containsKey(key) || e.getValue().isOccupied()) continue;
 
-            int[] rc = parseRhombusCoords(key);
-            if (rc == null) continue;
+            int[] rhombusCoords = parseRhombusCoords(key);
+            if (rhombusCoords == null) continue;
 
             // illegal rhombus (bot doesn't own the required diagonal pair) → 0
-            if (!isRhombusLegal(rc[0], rc[1], bot)) { ratings.put(key, 0.0); continue; }
+            if (!isRhombusLegal(rhombusCoords[0], rhombusCoords[1], bot)) { ratings.put(key, 0.0); continue; }
 
-            int botCost = rhombusPathScore(dsBot, deBot, rc[0], rc[1]);
-            int oppCost = rhombusPathScore(dsOpp, deOpp, rc[0], rc[1]);
+            int botCost = rhombusPathScore(dsBot, deBot, rhombusCoords[0], rhombusCoords[1]);
+            int oppCost = rhombusPathScore(dsOpp, deOpp, rhombusCoords[0], rhombusCoords[1]);
             if (botCost >= INF) { ratings.put(key, 0.0); continue; }
             rawScores.put(key, safeAdd(botCost, oppCost < INF ? oppCost : 0));
         }
@@ -171,8 +171,9 @@ public class BotPlayer {
         }
         for (Map.Entry<String, RhombicCell> e : board.getRhombusCells().entrySet()) {
             if (e.getValue().isOccupied()) continue;
-            int[] rc = parseRhombusCoords(e.getKey());
-            if (rc == null || !isRhombusLegal(rc[0], rc[1], colour)) continue;
+            int[] rhombusCoords = parseRhombusCoords(e.getKey());
+            if (rhombusCoords == null
+                || !isRhombusLegal(rhombusCoords[0], rhombusCoords[1], colour)) continue;
             if (testTemporary(e.getKey(), e.getValue(), colour)) return e.getKey();
         }
         return null;
@@ -209,14 +210,30 @@ public class BotPlayer {
      * cells), then randomly among the remaining top candidates for variety.
      */
     private String findBestCombinedMove(PlayerColour bot, PlayerColour opponent) {
+        Map<String, Integer> scores = computeCombinedScores(bot, opponent);
+        if (scores.isEmpty()) return anyEmptyOctagon(opponent);
+        return pickBestScoredCell(scores);
+    }
+
+    /**
+     * builds a candidate-cell → combined-cost map by running Dijkstra for both players
+     * across both edges and scoring every empty octagon and legal rhombus
+     */
+    private Map<String, Integer> computeCombinedScores(PlayerColour bot, PlayerColour opponent) {
         Map<String, Integer> dsBot = dijkstraFull(bot,      opponent, true);
         Map<String, Integer> deBot = dijkstraFull(bot,      opponent, false);
         Map<String, Integer> dsOpp = dijkstraFull(opponent, bot,      true);
         Map<String, Integer> deOpp = dijkstraFull(opponent, bot,      false);
 
         Map<String, Integer> scores = new LinkedHashMap<>();
+        scoreOctagons(scores, opponent, dsBot, deBot, dsOpp, deOpp);
+        scoreRhombuses(scores, bot, dsBot, deBot, dsOpp, deOpp);
+        return scores;
+    }
 
-        // score all reachable empty octagons
+    private void scoreOctagons(Map<String, Integer> scores, PlayerColour opponent,
+                               Map<String, Integer> dsBot, Map<String, Integer> deBot,
+                               Map<String, Integer> dsOpp, Map<String, Integer> deOpp) {
         for (Map.Entry<String, OctagonalCell> e : board.getOctagonCells().entrySet()) {
             OctagonalCell cell = e.getValue();
             if (cell.isOccupied() || cell.getColour() == opponent) continue;
@@ -227,40 +244,42 @@ public class BotPlayer {
 
             int oppCost = safeAdd(dsOpp.getOrDefault(e.getKey(), INF),
                 deOpp.getOrDefault(e.getKey(), INF));
-            // if unreachable for opponent this cell doesn't block them - treat as 0 disruption
-            int effective = safeAdd(botCost, oppCost < INF ? oppCost : 0);
-            scores.put(e.getKey(), effective);
+            // unreachable for opponent → 0 disruption value
+            scores.put(e.getKey(), safeAdd(botCost, oppCost < INF ? oppCost : 0));
         }
+    }
 
-        // score all legal rhombuses the same way - only placed if score is competitive
+    private void scoreRhombuses(Map<String, Integer> scores, PlayerColour bot,
+                                Map<String, Integer> dsBot, Map<String, Integer> deBot,
+                                Map<String, Integer> dsOpp, Map<String, Integer> deOpp) {
         for (Map.Entry<String, RhombicCell> e : board.getRhombusCells().entrySet()) {
             if (e.getValue().isOccupied()) continue;
-            int[] rc = parseRhombusCoords(e.getKey());
-            if (rc == null || !isRhombusLegal(rc[0], rc[1], bot)) continue;
+            int[] rhombusCoords = parseRhombusCoords(e.getKey());
+            if (rhombusCoords == null
+                || !isRhombusLegal(rhombusCoords[0], rhombusCoords[1], bot)) continue;
 
-            int botCost = rhombusPathScore(dsBot, deBot, rc[0], rc[1]);
+            int botCost = rhombusPathScore(dsBot, deBot, rhombusCoords[0], rhombusCoords[1]);
             if (botCost >= INF) continue;
 
-            int oppCost = rhombusPathScore(dsOpp, deOpp, rc[0], rc[1]);
-            int effective = safeAdd(botCost, oppCost < INF ? oppCost : 0);
-            scores.put(e.getKey(), effective);
+            int oppCost = rhombusPathScore(dsOpp, deOpp, rhombusCoords[0], rhombusCoords[1]);
+            scores.put(e.getKey(), safeAdd(botCost, oppCost < INF ? oppCost : 0));
         }
+    }
 
-        if (scores.isEmpty()) return anyEmptyOctagon(opponent);
-
-        // find minimum combined score
+    /**
+     * picks the lowest-scoring cell, breaking ties by centrality and then randomly
+     * among the top RANDOM_POOL_SIZE candidates for variety
+     */
+    private String pickBestScoredCell(Map<String, Integer> scores) {
         int minScore = Collections.min(scores.values());
 
-        // collect all candidates at the minimum score
         List<String> best = new ArrayList<>();
         for (Map.Entry<String, Integer> e : scores.entrySet()) {
             if (e.getValue() == minScore) best.add(e.getKey());
         }
 
-        // sort tied candidates by centrality (Manhattan distance to board centre F6)
         best.sort(Comparator.comparingInt(this::centralityPenalty));
 
-        // pick randomly among the top RANDOM_POOL_SIZE central candidates for variety
         int poolEnd = Math.min(RANDOM_POOL_SIZE, best.size());
         return best.get(rng.nextInt(poolEnd));
     }
@@ -300,16 +319,16 @@ public class BotPlayer {
 
         while (!pq.isEmpty()) {
             Object[] cur   = pq.poll();
-            int     d      = (int)     cur[0];
-            String  key    = (String)  cur[1];
-            boolean isRhb  = (boolean) cur[2];
+            int     d         = (int)     cur[0];
+            String  key       = (String)  cur[1];
+            boolean isRhombus = (boolean) cur[2];
 
             if (d > dist.getOrDefault(key, INF)) continue; // stale entry
 
-            if (isRhb) {
-                int[] rc = parseRhombusCoords(key);
-                if (rc == null) continue;
-                int col = rc[0], row = rc[1];
+            if (isRhombus) {
+                int[] rhombusCoords = parseRhombusCoords(key);
+                if (rhombusCoords == null) continue;
+                int col = rhombusCoords[0], row = rhombusCoords[1];
                 relaxOctagon(pq, dist, col,     row,     d, traverser, blocker);
                 relaxOctagon(pq, dist, col + 1, row,     d, traverser, blocker);
                 relaxOctagon(pq, dist, col,     row - 1, d, traverser, blocker);
@@ -388,8 +407,9 @@ public class BotPlayer {
         }
         for (Map.Entry<String, RhombicCell> e : board.getRhombusCells().entrySet()) {
             if (e.getValue().isOccupied()) continue;
-            int[] rc = parseRhombusCoords(e.getKey());
-            if (rc != null && isRhombusLegal(rc[0], rc[1], colour)
+            int[] rhombusCoords = parseRhombusCoords(e.getKey());
+            if (rhombusCoords != null
+                && isRhombusLegal(rhombusCoords[0], rhombusCoords[1], colour)
                 && testTemporary(e.getKey(), e.getValue(), colour))
                 result.add(e.getKey());
         }

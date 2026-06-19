@@ -8,7 +8,6 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.viewport.Viewport;
-import src.softies.GameMode;
 import src.softies.PlayerColour;
 
 // coordinates all in-game text drawing:
@@ -112,7 +111,7 @@ public class BoardRenderer {
         font.draw(batch, suffix, baseX + pl.width, y);
     }
 
-    /** draws the temporary status message in red, centred above the board title
+    /** draws the temporary status message in red, centred just below the board
      *  horizontally centred over the board (not the full viewport) so it never
      *  overlaps the objectives / players panel on the right side
      */
@@ -120,9 +119,8 @@ public class BoardRenderer {
         if (msg == null || msg.isEmpty()) return;
         font.setColor(STATUS_RED);
         GlyphLayout gl = new GlyphLayout(font, msg);
-        // centre over the board horizontally; sit just above the "Quax: Human vs Bot" title
         float x = world.boardCenterX - gl.width / 2f;
-        float y = world.boardMaxY + 170f;
+        float y = world.boardMinY - 80f;
         font.draw(batch, msg, x, y);
     }
 
@@ -142,10 +140,7 @@ public class BoardRenderer {
             font.draw(batch, String.valueOf((char)('A' + col)), x, world.boardMaxY + 116f);
         }
 
-        // title reflects the current game mode
-        String title = (gameState.getGameMode() == GameMode.HUMAN_VS_BOT)
-            ? "Quax: Human vs Bot"
-            : "Quax: Human vs Human";
+        String title = "Quax: Human vs Bot";
         GlyphLayout tl = new GlyphLayout(font, title);
         font.draw(batch, title, world.boardCenterX - tl.width / 2f, world.boardMaxY + 160f);
     }

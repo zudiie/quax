@@ -27,9 +27,6 @@ public class GameState {
     // null while the game is in progress; set when a winner is detected
     private PlayerColour winner = null;
 
-    // always HUMAN_VS_BOT - fixes the bug where BotStrategyWidget button became
-    // invisible after "Play Again" (restartGame creates a new GameState which
-    // previously defaulted to HUMAN_VS_HUMAN, hiding the Show Strategy button)
     private GameMode gameMode = GameMode.HUMAN_VS_BOT;
 
     /**

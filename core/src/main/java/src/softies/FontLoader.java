@@ -10,8 +10,6 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFont
 // both are generated at high pixel size then scaled down for crisp rendering on any display
 public class FontLoader {
 
-    // file name of the font to load from assets
-    //private static final String FONT_FILE = "CormorantGaramond-Bold.ttf";
     private static final String FONT_FILE = "SF-Pro-Display-Bold.ttf";
 
     // characters that must be present - DEFAULT_CHARS covers A-Z, 0-9, punctuation etc.

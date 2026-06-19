@@ -68,7 +68,8 @@ public class Main extends ApplicationAdapter {
 
     // bot think timer: -1 = not pending; >= 0 = counting down to bot move
     private float botThinkTimer = -1f;
-    private static final float BOT_THINK_DELAY = 1.0f;
+    private static final float BOT_THINK_DELAY = 3.0f;
+    private static final String BOT_TO_PLAY_MESSAGE = "BOT to play";
 
     private static final float UNIT_SCALE = 0.25f;
     private static final float MARGIN     = 150f;
@@ -246,10 +247,10 @@ public class Main extends ApplicationAdapter {
         // WorldCalculator Y values are raw TMX row numbers, not visual world positions.
         // X is not flipped, so boardMinX/boardMaxX are already correct.
         int mapH    = map.getProperties().get("height",     Integer.class);
-        int tileHpx = map.getProperties().get("tileheight", Integer.class);
-        int tileWpx = map.getProperties().get("tilewidth",  Integer.class);
-        float tileH = tileHpx * UNIT_SCALE;
-        float tileW = tileWpx * UNIT_SCALE;
+        int tileHeightPx = map.getProperties().get("tileheight", Integer.class);
+        int tileWidthPx  = map.getProperties().get("tilewidth",  Integer.class);
+        float tileH = tileHeightPx * UNIT_SCALE;
+        float tileW = tileWidthPx  * UNIT_SCALE;
 
         // board occupies TMX rows 4..14 (11 rows, 0-indexed from top of file)
         // after y-flip: visual bottom = (mapH-15)*tileH, visual top = (mapH-4)*tileH
@@ -369,6 +370,8 @@ public class Main extends ApplicationAdapter {
             && gameState.isBotTurn()
             && botThinkTimer < 0f) {
             botThinkTimer = BOT_THINK_DELAY;
+            statusMessage = BOT_TO_PLAY_MESSAGE;
+            statusTimer   = BOT_THINK_DELAY;
         }
     }
 
