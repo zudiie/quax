@@ -101,6 +101,7 @@ quax/
 │       ├── Point.java
 │       ├── FontLoader.java
 │       └── GameMode.java
+├── docs/                 ← user manual and game instructions
 ├── lwjgl3/               ← desktop launcher (LWJGL3)
 ├── gradle/               ← Gradle wrapper
 ├── build.gradle
